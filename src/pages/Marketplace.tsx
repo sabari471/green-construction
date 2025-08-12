@@ -16,7 +16,9 @@ import {
   ShoppingBag, Bell, Settings, LogOut, ChevronDown, Eye,
   ArrowLeft, CheckCircle, Clock, AlertCircle, Upload, Camera
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
 // Types
 interface Product {
@@ -54,6 +56,7 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  role?: string;
 }
 
 interface Order {
@@ -126,86 +129,139 @@ const AppProvider = ({ children }) => {
     products: [],
     cart: [],
     orders: [],
-    user: { id: '1', name: 'John Doe', email: 'john@example.com' }
+    user: null
   });
 
-  // Initialize with mock data
+  const [currentUser, setCurrentUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState(null);
+  const { toast } = useToast();
+
+  // Initialize auth state
   useEffect(() => {
-    const mockProducts = [
-      {
-        id: '1',
-        title: 'Recycled Steel Beams',
-        description: 'High-quality recycled steel beams perfect for construction projects. Tested for structural integrity.',
-        price: 45.99,
-        unit: 'piece',
-        condition: 'reusable',
-        location: 'New York, NY',
-        co2_savings: 25,
-        images: ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop'],
-        stock_quantity: 150,
-        rating: 4.5,
-        reviews_count: 23,
-        seller: { id: '1', display_name: 'EcoSteel Corp', location: 'New York, NY', rating: 4.8 },
-        category: { name: 'Steel & Metal' },
-        isLiked: false
-      },
-      {
-        id: '2',
-        title: 'Bamboo Flooring Panels',
-        description: 'Sustainable bamboo flooring panels with excellent durability and natural finish.',
-        price: 12.50,
-        unit: 'sqft',
-        condition: 'new',
-        location: 'Portland, OR',
-        co2_savings: 15,
-        images: ['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop'],
-        stock_quantity: 500,
-        rating: 4.7,
-        reviews_count: 89,
-        seller: { id: '2', display_name: 'GreenFloor Solutions', location: 'Portland, OR', rating: 4.9 },
-        category: { name: 'Flooring' },
-        isLiked: false
-      },
-      {
-        id: '3',
-        title: 'Reclaimed Wood Planks',
-        description: 'Beautiful reclaimed oak planks from old warehouses, perfect for rustic designs.',
-        price: 8.75,
-        unit: 'sqft',
-        condition: 'refurbished',
-        location: 'Austin, TX',
-        co2_savings: 30,
-        images: ['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop'],
-        stock_quantity: 200,
-        rating: 4.3,
-        reviews_count: 45,
-        seller: { id: '3', display_name: 'Rustic Revival', location: 'Austin, TX', rating: 4.6 },
-        category: { name: 'Wood' },
-        isLiked: false
-      },
-      {
-        id: '4',
-        title: 'Solar Panel System',
-        description: 'Complete 5kW solar panel system with inverter and mounting hardware.',
-        price: 2499.99,
-        unit: 'system',
-        condition: 'new',
-        location: 'Phoenix, AZ',
-        co2_savings: 500,
-        images: ['https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop'],
-        stock_quantity: 12,
-        rating: 4.9,
-        reviews_count: 156,
-        seller: { id: '4', display_name: 'SolarTech Pro', location: 'Phoenix, AZ', rating: 4.9 },
-        category: { name: 'Energy Systems' },
-        isLiked: false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
       }
-    ];
-    
-    dispatch({ type: 'SET_PRODUCTS', products: mockProducts });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setCurrentUser(session?.user ?? null);
+        if (session?.user) {
+          fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const addProduct = (product) => dispatch({ type: 'ADD_PRODUCT', product });
+  // Fetch user profile
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  // Load products from Supabase
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const { data: products, error } = await supabase
+          .from('products')
+          .select(`
+            *,
+            seller:profiles!seller_id(*),
+            category:categories(*)
+          `)
+          .eq('status', 'active');
+
+        if (error) throw error;
+        
+        const formattedProducts = products?.map(product => ({
+          ...product,
+          isLiked: false,
+          rating: 4.5, // Mock rating for now
+          reviews_count: Math.floor(Math.random() * 100) + 1
+        })) || [];
+
+        dispatch({ type: 'SET_PRODUCTS', products: formattedProducts });
+      } catch (error) {
+        console.error('Error loading products:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load products",
+          variant: "destructive"
+        });
+      }
+    };
+
+    loadProducts();
+  }, [toast]);
+
+  const addProduct = async (productData) => {
+    if (!currentUser || !profile) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to add products",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert({
+          ...productData,
+          seller_id: profile.id
+        })
+        .select(`
+          *,
+          seller:profiles!seller_id(*),
+          category:categories(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      const formattedProduct = {
+        ...data,
+        isLiked: false,
+        rating: 0,
+        reviews_count: 0
+      };
+
+      dispatch({ type: 'ADD_PRODUCT', product: formattedProduct });
+      
+      toast({
+        title: "Success",
+        description: "Product added successfully!",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add product",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
   const toggleLike = (productId) => dispatch({ type: 'TOGGLE_LIKE', productId });
   const addToCart = (product) => dispatch({ type: 'ADD_TO_CART', product });
   const removeFromCart = (productId) => dispatch({ type: 'REMOVE_FROM_CART', productId });
@@ -224,6 +280,8 @@ const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider value={{
       ...state,
+      currentUser,
+      profile,
       addProduct,
       toggleLike,
       addToCart,
@@ -344,15 +402,38 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
     location: '',
     co2_savings: '',
     stock_quantity: '',
-    category: 'Steel & Metal',
-    images: ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop']
+    category_id: null,
+    images: []
   });
+  
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  // Load categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*');
+        
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadCategories();
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     
-    const newProduct = {
-      id: Date.now().toString(),
+    const productData = {
       title: formData.title,
       description: formData.description,
       price: parseFloat(formData.price),
@@ -362,37 +443,30 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
       co2_savings: parseInt(formData.co2_savings) || 0,
       images: formData.images,
       stock_quantity: parseInt(formData.stock_quantity),
-      rating: 0,
-      reviews_count: 0,
-      seller: {
-        id: '1',
-        display_name: 'Your Store',
-        location: formData.location,
-        rating: 5.0
-      },
-      category: {
-        name: formData.category
-      },
-      isLiked: false
+      category_id: formData.category_id,
+      status: 'active'
     };
 
-    onAddProduct(newProduct);
+    const success = await onAddProduct(productData);
     
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      price: '',
-      unit: '',
-      condition: 'new',
-      location: '',
-      co2_savings: '',
-      stock_quantity: '',
-      category: 'Steel & Metal',
-      images: ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop']
-    });
+    if (success) {
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        price: '',
+        unit: '',
+        condition: 'new',
+        location: '',
+        co2_savings: '',
+        stock_quantity: '',
+        category_id: null,
+        images: []
+      });
+      onClose();
+    }
     
-    onClose();
+    setLoading(false);
   };
 
   const handleChange = (field, value) => {
@@ -476,15 +550,16 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
 
             <div>
               <Label htmlFor="category">Category *</Label>
-              <Select value={formData.category} onValueChange={(value) => handleChange('category', value)}>
+              <Select value={formData.category_id} onValueChange={(value) => handleChange('category_id', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Steel & Metal">Steel & Metal</SelectItem>
-                  <SelectItem value="Flooring">Flooring</SelectItem>
-                  <SelectItem value="Wood">Wood</SelectItem>
-                  <SelectItem value="Energy Systems">Energy Systems</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -539,8 +614,12 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
 };
 
 // Header Component
-const Header = ({ user, cartCount, onCartOpen, onAddProduct }) => {
+const Header = ({ user, cartCount, onCartOpen, onAddProduct, currentUser, profile, onAuth }) => {
   const [showAddProduct, setShowAddProduct] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <>
@@ -557,47 +636,65 @@ const Header = ({ user, cartCount, onCartOpen, onAddProduct }) => {
             </div>
             
             <nav className="hidden md:flex items-center space-x-6">
-              <Button variant="ghost" onClick={() => setShowAddProduct(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Sell Product
-              </Button>
+              {currentUser && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowAddProduct(true)}
+                  data-sell-button
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Sell Product
+                </Button>
+              )}
               <a href="#" className="text-gray-600 hover:text-primary transition-colors">Categories</a>
               <a href="#" className="text-gray-600 hover:text-primary transition-colors">About</a>
             </nav>
 
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">3</Badge>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="relative"
-                onClick={onCartOpen}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
-                    {cartCount}
-                  </Badge>
-                )}
-              </Button>
+              {currentUser && (
+                <>
+                  <Button variant="ghost" size="sm" className="relative">
+                    <Bell className="h-5 w-5" />
+                    <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">3</Badge>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="relative"
+                    onClick={onCartOpen}
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
+                        {cartCount}
+                      </Badge>
+                    )}
+                  </Button>
 
-              <Button variant="ghost" size="sm">
-                <User className="h-5 w-5" />
-              </Button>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+
+              {!currentUser && (
+                <Button onClick={onAuth}>
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      <AddProductModal
-        isOpen={showAddProduct}
-        onClose={() => setShowAddProduct(false)}
-        onAddProduct={onAddProduct}
-      />
+      {currentUser && (
+        <AddProductModal
+          isOpen={showAddProduct}
+          onClose={() => setShowAddProduct(false)}
+          onAddProduct={onAddProduct}
+        />
+      )}
     </>
   );
 };
@@ -1092,6 +1189,8 @@ const EcommercePlatform = () => {
     products,
     cart,
     user,
+    currentUser,
+    profile,
     addProduct,
     toggleLike,
     addToCart,
@@ -1132,9 +1231,17 @@ const EcommercePlatform = () => {
   });
 
   const handleAddToCart = (product) => {
+    if (!currentUser) {
+      window.location.href = '/auth';
+      return;
+    }
     addToCart(product);
     // Show success message (in real app would use toast)
     alert(`${product.title} added to cart!`);
+  };
+
+  const handleAuthRequired = () => {
+    window.location.href = '/auth';
   };
 
   const handleViewProduct = (product) => {
@@ -1156,12 +1263,14 @@ const EcommercePlatform = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <Header 
         user={user}
+        currentUser={currentUser}
+        profile={profile}
         cartCount={getCartCount()}
         onCartOpen={() => setIsCartOpen(true)}
         onAddProduct={addProduct}
+        onAuth={handleAuthRequired}
       />
 
       <main className="container mx-auto px-4 py-8">
@@ -1174,10 +1283,31 @@ const EcommercePlatform = () => {
               Build better, build sustainable.
             </p>
             <div className="flex gap-4">
-              <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
+              <Button 
+                size="lg" 
+                className="bg-white text-green-600 hover:bg-gray-100"
+                onClick={() => {
+                  const productsSection = document.querySelector('[data-products-section]');
+                  productsSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
                 Start Shopping
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white text-white hover:bg-white/10"
+                onClick={() => {
+                  if (currentUser) {
+                    const sellButton = document.querySelector('[data-sell-button]') as HTMLButtonElement;
+                    if (sellButton) {
+                      sellButton.click();
+                    }
+                  } else {
+                    handleAuthRequired();
+                  }
+                }}
+              >
                 Become a Seller
               </Button>
             </div>
@@ -1261,7 +1391,10 @@ const EcommercePlatform = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          data-products-section
+        >
           {filteredProducts.map((product) => (
             <ProductCard
               key={product.id}
