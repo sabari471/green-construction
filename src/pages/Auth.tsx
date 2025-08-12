@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Recycle } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -100,7 +101,9 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      <Navbar />
+      <div className="flex items-center justify-center p-4 min-h-[calc(100vh-4rem)]">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-2">
@@ -194,6 +197,7 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

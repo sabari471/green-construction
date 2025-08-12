@@ -15,6 +15,7 @@ import {
   Bell, Filter, TrendingUp, Users, Eye, Pin, Award, Heart, Send,
   LogIn, UserPlus, X, Tag, Image, Link
 } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 // Mock initial data
 const initialPosts = [
@@ -242,6 +243,7 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">

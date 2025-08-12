@@ -16,6 +16,7 @@ import {
   ShoppingBag, Bell, Settings, LogOut, ChevronDown, Eye,
   ArrowLeft, CheckCircle, Clock, AlertCircle, Upload, Camera
 } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 // Types
 interface Product {
@@ -1155,6 +1156,7 @@ const EcommercePlatform = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <Header 
         user={user}
         cartCount={getCartCount()}
@@ -1329,7 +1331,7 @@ const EcommercePlatform = () => {
 };
 
 // Main App Component with Provider
-const App = () => {
+const Marketplace = () => {
   return (
     <AppProvider>
       <EcommercePlatform />
@@ -1337,4 +1339,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default Marketplace;

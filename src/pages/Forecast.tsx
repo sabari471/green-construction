@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Minus, Download, Save, AlertTriangle, Cloud, Sun, CloudRain, Thermometer, Wind, Eye, Calendar, BarChart3, Target, Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, Bar } from 'recharts';
+import Navbar from "@/components/Navbar";
 
 interface Material {
   id: string;
@@ -263,7 +264,9 @@ const Forecast = () => {
     : 0;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -901,6 +904,7 @@ const Forecast = () => {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };
