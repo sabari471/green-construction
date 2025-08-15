@@ -374,7 +374,7 @@ const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <div className="text-2xl font-bold text-primary">
-            ${product.price}
+            ₹{product.price.toLocaleString('en-IN')}
             <span className="text-sm font-normal text-muted-foreground ml-1">
               /{product.unit}
             </span>
