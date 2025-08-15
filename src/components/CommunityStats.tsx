@@ -141,22 +141,22 @@ const CommunityStats = () => {
   return (
     <div className="space-y-4">
       {/* Real-time header stats */}
-      <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-1">
-            <Users className="h-4 w-4" />
-            <span>{formatNumber(stats.totalMembers)} members</span>
+      <div className="flex flex-wrap items-center justify-between text-sm text-primary-foreground/90 mb-4 gap-2">
+        <div className="flex flex-wrap items-center space-x-4 gap-y-2">
+          <div className="flex items-center space-x-1 bg-primary-foreground/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-primary-foreground/20">
+            <Users className="h-4 w-4 text-primary-foreground" />
+            <span className="font-medium text-primary-foreground">{formatNumber(stats.totalMembers)} members</span>
           </div>
-          <div className="flex items-center space-x-1">
-            <MessageSquare className="h-4 w-4" />
-            <span>{stats.postsThisWeek} posts this week</span>
+          <div className="flex items-center space-x-1 bg-primary-foreground/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-primary-foreground/20">
+            <MessageSquare className="h-4 w-4 text-primary-foreground" />
+            <span className="font-medium text-primary-foreground">{stats.postsThisWeek} posts this week</span>
           </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span>{stats.activeUsers} online now</span>
+          <div className="flex items-center space-x-1 bg-primary-foreground/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-primary-foreground/20">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="font-medium text-primary-foreground">{stats.activeUsers} online now</span>
           </div>
         </div>
-        <Badge className={activity.color}>
+        <Badge className="bg-accent/20 text-accent-foreground border-accent/30 backdrop-blur-sm">
           {activity.text}
         </Badge>
       </div>
