@@ -10,114 +10,133 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 import { 
   Search, Plus, MessageSquare, ThumbsUp, Clock, User, CheckCircle, 
   Bell, Filter, TrendingUp, Users, Eye, Pin, Award, Heart, Send,
   LogIn, UserPlus, X, Tag, Image, Link
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
-// Mock initial data
-const initialPosts = [
-  {
-    id: "1",
-    title: "Best practices for sustainable concrete in high-rise construction?",
-    content: "I'm working on a 40-story residential project and looking for recommendations on sustainable concrete alternatives that don't compromise structural integrity. Has anyone used recycled aggregate concrete at this scale?",
-    post_type: "question",
-    tags: ["sustainability", "concrete", "high-rise", "materials"],
-    is_solved: false,
-    is_pinned: false,
-    view_count: 234,
-    upvotes: 18,
-    reply_count: 7,
-    created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    last_activity: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    author: {
-      id: "user1",
-      display_name: "Sarah Chen",
-      role: "Structural Engineer",
-      avatar: null,
-      reputation: 1250,
-      is_verified: true
-    },
-    category: {
-      name: "Sustainable Practices",
-      color: "#10b981",
-      slug: "sustainable"
-    }
-  },
-  {
-    id: "2",
-    title: "Cost estimation tools comparison - BuildingConnected vs Procore",
-    content: "Our firm is evaluating different cost estimation software. Looking for real-world experiences comparing these platforms, especially for infrastructure projects...",
-    post_type: "discussion",
-    tags: ["software", "cost-estimation", "tools", "productivity"],
-    is_solved: false,
-    is_pinned: true,
-    view_count: 567,
-    upvotes: 31,
-    reply_count: 15,
-    created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    last_activity: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
-    author: {
-      id: "user2",
-      display_name: "Mike Rodriguez",
-      role: "Project Manager",
-      avatar: null,
-      reputation: 890,
-      is_verified: false
-    },
-    category: {
-      name: "Tools & Technology",
-      color: "#3b82f6",
-      slug: "tools"
-    }
-  }
-];
-
-const categories = [
-  { id: "1", name: "General Discussion", slug: "general", color: "#6b7280", post_count: 145, description: "Open discussions about civil engineering" },
-  { id: "2", name: "Sustainable Practices", slug: "sustainable", color: "#10b981", post_count: 89, description: "Green building and sustainable construction" },
-  { id: "3", name: "Career & Learning", slug: "career", color: "#f59e0b", post_count: 67, description: "Professional development and education" },
-  { id: "4", name: "Tools & Technology", slug: "tools", color: "#3b82f6", post_count: 92, description: "Software, tools, and technology discussions" },
-  { id: "5", name: "Marketplace Help", slug: "marketplace", color: "#8b5cf6", post_count: 34, description: "Questions about using the marketplace" }
-];
 
 const Community = () => {
-  const [posts, setPosts] = useState(initialPosts);
-  const [loading, setLoading] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [showSignupDialog, setShowSignupDialog] = useState(false);
   const [showPostDialog, setShowPostDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // User authentication state (in-memory only, no localStorage)
   const [user, setUser] = useState(null);
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [signupForm, setSignupForm] = useState({ 
-    name: "", email: "", password: "", role: "" 
-  });
+  const [userProfile, setUserProfile] = useState(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // New post form state
   const [newPost, setNewPost] = useState({
     title: "", 
     content: "", 
     post_type: "discussion", 
-    category: "", 
+    category_id: "", 
     tags: ""
   });
+
+  // Load data on component mount
+  useEffect(() => {
+    loadPosts();
+    loadCategories();
+    loadUserAuth();
+  }, []);
+
+  const loadUserAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+      setUserProfile(profile);
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        setUserProfile(profile);
+      } else {
+        setUser(null);
+        setUserProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  };
+
+  const loadPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:author_id (
+            id,
+            display_name,
+            role,
+            avatar_url
+          ),
+          forum_categories:category_id (
+            id,
+            name,
+            color
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+      toast({
+        title: "Error loading posts",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('forum_categories')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
 
   // Filter and sort posts
   const filteredAndSortedPosts = posts
     .filter(post => {
       const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesCategory = selectedCategory === "all" || post.category?.slug === selectedCategory;
+                           (post.tags && post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+      const matchesCategory = selectedCategory === "all" || post.category_id === selectedCategory;
       const matchesType = selectedType === "all" || post.post_type === selectedType;
       
       return matchesSearch && matchesCategory && matchesType;
@@ -125,11 +144,11 @@ const Community = () => {
     .sort((a, b) => {
       switch (sortBy) {
         case "popular":
-          return b.upvotes - a.upvotes;
+          return (b.upvotes || 0) - (a.upvotes || 0);
         case "activity":
-          return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
         case "unanswered":
-          return (a.reply_count === 0 ? -1 : 1) - (b.reply_count === 0 ? -1 : 1);
+          return ((a.reply_count || 0) === 0 ? -1 : 1) - ((b.reply_count || 0) === 0 ? -1 : 1);
         default: // recent
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
@@ -156,89 +175,148 @@ const Community = () => {
     return date.toLocaleDateString();
   };
 
-  const handleLogin = (e) => {
+  const handleSignIn = () => {
+    navigate('/auth');
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Signed out successfully",
+      description: "Come back soon!",
+    });
+  };
+
+  const handleCreatePost = async (e) => {
     e.preventDefault();
-    // Simulate login - in real app, this would be an API call
-    if (loginForm.email && loginForm.password) {
-      const newUser = {
-        id: "current-user",
-        display_name: "John Doe",
-        email: loginForm.email,
-        role: "Civil Engineer",
-        avatar: null,
-        reputation: 150,
-        is_verified: false
-      };
-      setUser(newUser);
-      setShowLoginDialog(false);
-      setLoginForm({ email: "", password: "" });
+    if (!user || !userProfile) return;
+
+    if (newPost.title && newPost.content && newPost.category_id) {
+      try {
+        const tags = newPost.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+        
+        const { data, error } = await supabase
+          .from('posts')
+          .insert({
+            title: newPost.title,
+            content: newPost.content,
+            post_type: newPost.post_type,
+            tags: tags,
+            author_id: userProfile.id,
+            category_id: newPost.category_id
+          })
+          .select(`
+            *,
+            profiles:author_id (
+              id,
+              display_name,
+              role,
+              avatar_url
+            ),
+            forum_categories:category_id (
+              id,
+              name,
+              color
+            )
+          `)
+          .single();
+
+        if (error) throw error;
+
+        setPosts([data, ...posts]);
+        setShowPostDialog(false);
+        setNewPost({ title: "", content: "", post_type: "discussion", category_id: "", tags: "" });
+        
+        toast({
+          title: "Post created successfully!",
+          description: "Your post is now live in the community.",
+        });
+      } catch (error) {
+        console.error('Error creating post:', error);
+        toast({
+          title: "Error creating post",
+          description: "Please try again later.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleSignup = (e) => {
-    e.preventDefault();
-    // Simulate signup - in real app, this would be an API call
-    if (signupForm.name && signupForm.email && signupForm.password && signupForm.role) {
-      const newUser = {
-        id: "new-user",
-        display_name: signupForm.name,
-        email: signupForm.email,
-        role: signupForm.role,
-        avatar: null,
-        reputation: 0,
-        is_verified: false
-      };
-      setUser(newUser);
-      setShowSignupDialog(false);
-      setSignupForm({ name: "", email: "", password: "", role: "" });
-    }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    // Clear any user-related state without using localStorage
-  };
-
-  const handleCreatePost = (e) => {
-    e.preventDefault();
-    if (!user) return;
-
-    if (newPost.title && newPost.content && newPost.category) {
-      const selectedCat = categories.find(cat => cat.slug === newPost.category);
-      const post = {
-        id: Date.now().toString(),
-        title: newPost.title,
-        content: newPost.content,
-        post_type: newPost.post_type,
-        tags: newPost.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        is_solved: false,
-        is_pinned: false,
-        view_count: 0,
-        upvotes: 0,
-        reply_count: 0,
-        created_at: new Date().toISOString(),
-        last_activity: new Date().toISOString(),
-        author: user,
-        category: selectedCat
-      };
-
-      setPosts([post, ...posts]);
-      setShowPostDialog(false);
-      setNewPost({ title: "", content: "", post_type: "discussion", category: "", tags: "" });
-    }
-  };
-
-  const handleUpvote = (postId) => {
-    if (!user) {
-      setShowLoginDialog(true);
+  const handleUpvote = async (postId) => {
+    if (!user || !userProfile) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to upvote posts.",
+        variant: "destructive",
+      });
       return;
     }
 
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, upvotes: post.upvotes + 1 }
-        : post
-    ));
+    try {
+      // Check if user already voted
+      const { data: existingVote } = await supabase
+        .from('post_votes')
+        .select('*')
+        .eq('post_id', postId)
+        .eq('user_id', userProfile.id)
+        .single();
+
+      if (existingVote) {
+        toast({
+          title: "Already voted",
+          description: "You can only vote once per post.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add vote
+      const { error: voteError } = await supabase
+        .from('post_votes')
+        .insert({
+          post_id: postId,
+          user_id: userProfile.id,
+          vote_type: 'upvote'
+        });
+
+      if (voteError) throw voteError;
+
+      // Get current post to update upvotes
+      const { data: currentPost, error: fetchError } = await supabase
+        .from('posts')
+        .select('upvotes')
+        .eq('id', postId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update post upvotes count
+      const { error: updateError } = await supabase
+        .from('posts')
+        .update({ upvotes: (currentPost.upvotes || 0) + 1 })
+        .eq('id', postId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setPosts(posts.map(post => 
+        post.id === postId 
+          ? { ...post, upvotes: (post.upvotes || 0) + 1 }
+          : post
+      ));
+
+      toast({
+        title: "Post upvoted!",
+        description: "Thank you for your feedback.",
+      });
+    } catch (error) {
+      console.error('Error upvoting post:', error);
+      toast({
+        title: "Error upvoting post",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -268,15 +346,19 @@ const Community = () => {
             </div>
           </div>
           <div className="mt-4 lg:mt-0 flex items-center space-x-2 lg:space-x-3">
-            {user ? (
+            {user && userProfile ? (
               <>
                 <div className="hidden lg:flex items-center space-x-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                      {user.display_name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
+                    {userProfile.avatar_url ? (
+                      <AvatarImage src={userProfile.avatar_url} alt={userProfile.display_name} />
+                    ) : (
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                        {userProfile.display_name?.charAt(0) || user.email?.charAt(0)}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
-                  <span className="text-sm font-medium">{user.display_name}</span>
+                  <span className="text-sm font-medium">{userProfile.display_name || user.email}</span>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleLogout}>
                   Logout
@@ -293,12 +375,12 @@ const Community = () => {
               </>
             ) : (
               <>
-                <Button variant="outline" size="sm" onClick={() => setShowLoginDialog(true)}>
+                <Button variant="outline" size="sm" onClick={handleSignIn}>
                   <LogIn className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Sign In</span>
                   <span className="sm:hidden">Login</span>
                 </Button>
-                <Button size="sm" onClick={() => setShowSignupDialog(true)}>
+                <Button size="sm" onClick={handleSignIn}>
                   <UserPlus className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Sign Up</span>
                   <span className="sm:hidden">Join</span>
@@ -318,8 +400,8 @@ const Community = () => {
                   <p className="text-sm text-blue-700">Sign in to ask questions, share knowledge, and connect with fellow engineers.</p>
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => setShowLoginDialog(true)}>Sign In</Button>
-                  <Button size="sm" onClick={() => setShowSignupDialog(true)}>Sign Up</Button>
+                  <Button variant="outline" size="sm" onClick={handleSignIn}>Sign In</Button>
+                  <Button size="sm" onClick={handleSignIn}>Sign Up</Button>
                 </div>
               </div>
             </CardContent>
@@ -363,9 +445,9 @@ const Community = () => {
                 {categories.map((category) => (
                   <Button
                     key={category.id}
-                    variant={selectedCategory === category.slug ? "default" : "ghost"}
+                    variant={selectedCategory === category.id ? "default" : "ghost"}
                     className="w-full justify-start text-sm"
-                    onClick={() => setSelectedCategory(category.slug)}
+                    onClick={() => setSelectedCategory(category.id)}
                   >
                     <div
                       className="w-2 h-2 rounded-full mr-3"
@@ -373,7 +455,7 @@ const Community = () => {
                     />
                     <span className="truncate">{category.name}</span>
                     <Badge variant="secondary" className="ml-auto text-xs">
-                      {category.post_count}
+                      {category.post_count || 0}
                     </Badge>
                   </Button>
                 ))}
@@ -447,14 +529,14 @@ const Community = () => {
             {/* Posts List */}
             <div className="space-y-4">
               {filteredAndSortedPosts.map((post) => (
-                <Card key={post.id} className="hover:shadow-lg transition-all duration-200 border-l-4" style={{ borderLeftColor: post.category.color }}>
+                <Card key={post.id} className="hover:shadow-lg transition-all duration-200 border-l-4" style={{ borderLeftColor: post.forum_categories?.color || '#3b82f6' }}>
                   <CardContent className="p-4 lg:p-6">
                     <div className="flex gap-3 lg:gap-4">
                       {/* User Avatar - Hidden on mobile */}
                       <Avatar className="h-8 w-8 lg:h-10 lg:w-10 flex-shrink-0 hidden sm:block">
-                        <AvatarImage src={post.author.avatar} />
+                        <AvatarImage src={post.profiles?.avatar_url} />
                         <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                          {post.author.display_name.split(' ').map(n => n[0]).join('')}
+                          {post.profiles?.display_name?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
 
@@ -469,9 +551,9 @@ const Community = () => {
                           <Badge
                             variant="outline"
                             className="text-xs hidden sm:inline-flex"
-                            style={{ borderColor: post.category.color, color: post.category.color }}
+                            style={{ borderColor: post.forum_categories?.color || '#3b82f6', color: post.forum_categories?.color || '#3b82f6' }}
                           >
-                            {post.category.name}
+                            {post.forum_categories?.name || 'General'}
                           </Badge>
                           {post.is_solved && post.post_type === 'question' && (
                             <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
@@ -512,8 +594,7 @@ const Community = () => {
                           <div className="flex items-center space-x-2 lg:space-x-4 text-gray-500">
                             <div className="flex items-center space-x-1">
                               <User className="h-3 w-3" />
-                              <span className="font-medium text-gray-700 truncate max-w-24 lg:max-w-none">{post.author.display_name}</span>
-                              {post.author.is_verified && <CheckCircle className="h-3 w-3 text-blue-500" />}
+                              <span className="font-medium text-gray-700 truncate max-w-24 lg:max-w-none">{post.profiles?.display_name || 'Anonymous'}</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <Clock className="h-3 w-3" />
@@ -524,11 +605,11 @@ const Community = () => {
                           <div className="flex items-center space-x-2 lg:space-x-4">
                             <div className="flex items-center space-x-1 text-gray-500">
                               <Eye className="h-3 w-3" />
-                              <span>{post.view_count}</span>
+                              <span>{post.view_count || 0}</span>
                             </div>
                             <div className="flex items-center space-x-1 text-gray-500">
                               <MessageSquare className="h-3 w-3" />
-                              <span>{post.reply_count}</span>
+                              <span>{post.reply_count || 0}</span>
                             </div>
                             <Button
                               variant="ghost"
@@ -537,7 +618,7 @@ const Community = () => {
                               onClick={() => handleUpvote(post.id)}
                             >
                               <Heart className="h-3 w-3 mr-1" />
-                              <span className="text-xs">{post.upvotes}</span>
+                              <span className="text-xs">{post.upvotes || 0}</span>
                             </Button>
                           </div>
                         </div>
@@ -568,7 +649,7 @@ const Community = () => {
                       Create First Post
                     </Button>
                   ) : (
-                    <Button variant="outline" onClick={() => setShowLoginDialog(true)}>
+                    <Button variant="outline" onClick={handleSignIn}>
                       Sign In to Create Post
                     </Button>
                   )}
@@ -578,131 +659,6 @@ const Community = () => {
           </div>
         </div>
 
-        {/* Login Dialog */}
-        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Sign In to Community</DialogTitle>
-              <DialogDescription>
-                Join thousands of civil engineers sharing knowledge and expertise.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button type="submit" className="flex-1">Sign In</Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowLoginDialog(false);
-                    setShowSignupDialog(true);
-                  }}
-                >
-                  Sign Up
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Signup Dialog */}
-        <Dialog open={showSignupDialog} onOpenChange={setShowSignupDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Join the Community</DialogTitle>
-              <DialogDescription>
-                Create your account to start participating in discussions.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={signupForm.name}
-                  onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  value={signupForm.email}
-                  onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select value={signupForm.role} onValueChange={(value) => setSignupForm({...signupForm, role: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Civil Engineer">Civil Engineer</SelectItem>
-                    <SelectItem value="Structural Engineer">Structural Engineer</SelectItem>
-                    <SelectItem value="Project Manager">Project Manager</SelectItem>
-                    <SelectItem value="Site Engineer">Site Engineer</SelectItem>
-                    <SelectItem value="Student">Student</SelectItem>
-                    <SelectItem value="Consultant">Consultant</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="signup-password">Password</Label>
-                <Input
-                  id="signup-password"
-                  type="password"
-                  value={signupForm.password}
-                  onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button type="submit" className="flex-1">Create Account</Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowSignupDialog(false);
-                    setShowLoginDialog(true);
-                  }}
-                >
-                  Sign In
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
 
         {/* Create Post Dialog */}
         <Dialog open={showPostDialog} onOpenChange={setShowPostDialog}>
@@ -741,21 +697,21 @@ const Community = () => {
                   </Select>
                 </div>
                 
-                <div>
-                  <Label htmlFor="post-category">Category</Label>
-                  <Select value={newPost.category} onValueChange={(value) => setNewPost({...newPost, category: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.slug}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                 <div>
+                   <Label htmlFor="post-category">Category</Label>
+                   <Select value={newPost.category_id} onValueChange={(value) => setNewPost({...newPost, category_id: value})}>
+                     <SelectTrigger>
+                       <SelectValue placeholder="Select category" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       {categories.map((category) => (
+                         <SelectItem key={category.id} value={category.id}>
+                           {category.name}
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
               </div>
 
               <div>
