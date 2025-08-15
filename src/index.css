@@ -8,64 +8,77 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Civil Engineering Color Palette */
-    --background: 0 0% 100%;
-    --foreground: 210 12% 16%;
+    /* Professional Civil Engineering Color Palette */
+    --background: 220 15% 97%;
+    --foreground: 215 20% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 12% 16%;
+    --card-foreground: 215 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 12% 16%;
+    --popover-foreground: 215 20% 15%;
 
     /* Primary: Professional Steel Blue */
-    --primary: 210 50% 25%;
+    --primary: 215 65% 35%;
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 210 50% 20%;
+    --primary-hover: 215 65% 30%;
+    --primary-variant: 215 45% 55%;
 
-    /* Secondary: Concrete Gray */
-    --secondary: 210 8% 93%;
-    --secondary-foreground: 210 12% 16%;
+    /* Secondary: Refined Concrete */
+    --secondary: 215 12% 89%;
+    --secondary-foreground: 215 20% 25%;
 
-    /* Muted: Light Gray */
-    --muted: 210 8% 96%;
-    --muted-foreground: 210 8% 45%;
+    /* Muted: Soft Gray */
+    --muted: 215 10% 95%;
+    --muted-foreground: 215 12% 50%;
 
     /* Accent: Construction Orange */
-    --accent: 25 95% 53%;
+    --accent: 25 85% 58%;
     --accent-foreground: 0 0% 98%;
-    --accent-hover: 25 95% 48%;
+    --accent-hover: 25 85% 52%;
+    --accent-soft: 25 65% 88%;
 
     /* Success: Sustainable Green */
-    --success: 142 69% 35%;
+    --success: 145 60% 42%;
     --success-foreground: 0 0% 98%;
+    --success-soft: 145 45% 85%;
 
     /* Warning: Safety Yellow */
-    --warning: 45 93% 58%;
-    --warning-foreground: 210 12% 16%;
+    --warning: 45 85% 62%;
+    --warning-foreground: 215 20% 15%;
+    --warning-soft: 45 65% 88%;
 
-    --destructive: 0 84% 60%;
+    /* Info: Blueprint Blue */
+    --info: 205 75% 55%;
+    --info-foreground: 0 0% 98%;
+    --info-soft: 205 55% 88%;
+
+    --destructive: 0 75% 58%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 8% 88%;
-    --input: 210 8% 88%;
-    --ring: 210 50% 25%;
+    --border: 215 15% 85%;
+    --input: 215 15% 90%;
+    --ring: 215 65% 35%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Gradients */
+    /* Professional Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-variant)));
+    --gradient-sustainable: linear-gradient(120deg, hsl(var(--success)), hsl(145 55% 52%));
     --gradient-hero: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-    --gradient-sustainable: linear-gradient(120deg, hsl(var(--success)), hsl(142 69% 45%));
     --gradient-card: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-accent: linear-gradient(45deg, hsl(var(--accent)), hsl(35 85% 65%));
 
-    /* Shadows */
-    --shadow-soft: 0 4px 20px hsl(var(--foreground) / 0.08);
-    --shadow-medium: 0 8px 40px hsl(var(--foreground) / 0.12);
-    --shadow-strong: 0 20px 60px hsl(var(--foreground) / 0.15);
+    /* Professional Shadows */
+    --shadow-elegant: 0 2px 20px hsl(var(--primary) / 0.08);
+    --shadow-card: 0 4px 25px hsl(var(--foreground) / 0.06);
+    --shadow-strong: 0 8px 40px hsl(var(--foreground) / 0.12);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.15);
 
-    /* Animations */
+    /* Smooth Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bouncy: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --transition-spring: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 

@@ -297,20 +297,26 @@ const AppProvider = ({ children }) => {
   );
 };
 
-// Product Card Component
+// Professional Product Card Component
 const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
-  <Card className="group hover:shadow-xl transition-all duration-300 border-0 shadow-md">
-    <div className="relative h-48 bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg overflow-hidden">
+  <Card className="group hover:shadow-elegant transition-all duration-500 border border-border/40 bg-card/50 backdrop-blur-sm animate-fade-in">
+    <div className="relative h-52 bg-gradient-to-br from-muted to-secondary rounded-t-lg overflow-hidden">
       <img
         src={product.images[0]}
         alt={product.title}
-        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
-      <div className="absolute top-3 right-3 flex flex-col gap-2">
+      
+      {/* Action Buttons */}
+      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <Button
           size="sm"
           variant="secondary"
-          className={`h-8 w-8 p-0 backdrop-blur-sm ${product.isLiked ? 'bg-red-100 text-red-600' : 'bg-white/80'}`}
+          className={`h-9 w-9 p-0 backdrop-blur-md border shadow-card ${
+            product.isLiked 
+              ? 'bg-accent/20 text-accent border-accent/30' 
+              : 'bg-card/80 text-foreground hover:bg-card/90'
+          }`}
           onClick={() => onToggleLike(product.id)}
         >
           <Heart className={`h-4 w-4 ${product.isLiked ? 'fill-current' : ''}`} />
@@ -318,62 +324,72 @@ const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
         <Button
           size="sm"
           variant="secondary"
-          className="h-8 w-8 p-0 backdrop-blur-sm bg-white/80"
+          className="h-9 w-9 p-0 backdrop-blur-md bg-card/80 border shadow-card hover:bg-card/90"
           onClick={() => onViewDetails(product)}
         >
           <Eye className="h-4 w-4" />
         </Button>
       </div>
+      
+      {/* Condition Badge */}
       {product.condition !== 'new' && (
-        <Badge className="absolute top-3 left-3 bg-green-100 text-green-800 border-green-200">
+        <Badge className="absolute top-3 left-3 bg-success-soft text-success-foreground border-success/30 font-medium">
+          <div className="w-1.5 h-1.5 bg-success rounded-full mr-1.5" />
           {product.condition}
         </Badge>
       )}
+      
+      {/* CO2 Savings Badge */}
       {product.co2_savings > 0 && (
-        <Badge className="absolute bottom-3 left-3 bg-emerald-500 text-white">
+        <Badge className="absolute bottom-3 left-3 bg-success text-success-foreground shadow-card">
           <Leaf className="h-3 w-3 mr-1" />
           {product.co2_savings}kg CO₂ saved
         </Badge>
       )}
     </div>
 
-    <CardHeader className="p-4 pb-2">
-      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+    <CardHeader className="p-5 pb-3 space-y-3">
+      <CardTitle className="text-lg line-clamp-2 font-semibold text-card-foreground group-hover:text-primary transition-colors duration-300">
         {product.title}
       </CardTitle>
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <div className="flex items-center">
-          <MapPin className="h-3 w-3 mr-1" />
-          {product.seller.location}
+      
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center text-muted-foreground">
+          <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary/60" />
+          <span className="font-medium">{product.seller.location}</span>
         </div>
-        <div className="flex items-center">
-          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-          {product.rating} ({product.reviews_count})
+        <div className="flex items-center bg-warning-soft text-warning-foreground px-2 py-1 rounded-md">
+          <Star className="h-3.5 w-3.5 fill-warning text-warning mr-1" />
+          <span className="font-medium">{product.rating}</span>
+          <span className="text-xs ml-1">({product.reviews_count})</span>
         </div>
       </div>
     </CardHeader>
 
-    <CardContent className="p-4 pt-0">
-      <CardDescription className="line-clamp-2 mb-4 text-gray-600">
+    <CardContent className="p-5 pt-0 space-y-4">
+      <CardDescription className="line-clamp-2 text-muted-foreground leading-relaxed">
         {product.description}
       </CardDescription>
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-2xl font-bold text-primary">
-          ${product.price}
-          <span className="text-sm font-normal text-gray-500">
-            /{product.unit}
-          </span>
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <div className="text-2xl font-bold text-primary">
+            ${product.price}
+            <span className="text-sm font-normal text-muted-foreground ml-1">
+              /{product.unit}
+            </span>
+          </div>
         </div>
-        <div className="text-sm text-gray-500">
-          Stock: {product.stock_quantity}
+        <div className="text-right">
+          <div className="text-sm text-muted-foreground">In Stock</div>
+          <div className="text-sm font-semibold text-success">{product.stock_quantity} units</div>
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <Button 
           size="sm" 
-          className="flex-1 bg-primary hover:bg-primary/90"
+          className="flex-1 h-9 bg-primary hover:bg-primary-hover text-primary-foreground shadow-elegant font-medium"
           onClick={() => onAddToCart(product)}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
@@ -382,9 +398,10 @@ const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
         <Button 
           size="sm" 
           variant="outline"
+          className="px-4 h-9 border-border/60 hover:bg-muted/60"
           onClick={() => onViewDetails(product)}
         >
-          View Details
+          Details
         </Button>
       </div>
     </CardContent>
@@ -1378,7 +1395,7 @@ const EcommercePlatform = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header 
         user={user}
         currentUser={currentUser}
@@ -1389,122 +1406,208 @@ const EcommercePlatform = () => {
         onAuth={handleAuthRequired}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-8 mb-8 text-white">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl font-bold mb-4">Sustainable Construction Marketplace</h1>
-            <p className="text-xl opacity-90 mb-6">
-              Discover eco-friendly materials and equipment for your next project. 
-              Build better, build sustainable.
-            </p>
-            <div className="flex gap-4">
-              <Button 
-                size="lg" 
-                className="bg-white text-green-600 hover:bg-gray-100"
-                onClick={() => {
-                  const productsSection = document.querySelector('[data-products-section]');
-                  productsSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Start Shopping
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-white text-white hover:bg-white/10"
-                onClick={() => {
-                  if (currentUser) {
-                    const sellButton = document.querySelector('[data-sell-button]') as HTMLButtonElement;
-                    if (sellButton) {
-                      sellButton.click();
-                    }
-                  } else {
-                    handleAuthRequired();
-                  }
-                }}
-              >
-                Become a Seller
-              </Button>
+      <main className="container mx-auto px-4 lg:px-6 py-8 max-w-7xl">
+        {/* Professional Hero Section */}
+        <div className="relative bg-gradient-to-br from-primary via-primary-variant to-accent rounded-3xl p-8 lg:p-12 mb-12 overflow-hidden shadow-strong">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-primary-foreground/20 to-transparent" />
+            <div className="absolute top-1/4 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-primary-foreground/20 rounded-full blur-2xl" />
+          </div>
+          
+          <div className="relative max-w-4xl">
+            <div className="grid lg:grid-cols-2 gap-8 items-center">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 backdrop-blur-sm">
+                    <Leaf className="h-3 w-3 mr-1" />
+                    Sustainable Construction Hub
+                  </Badge>
+                  <h1 className="text-4xl lg:text-5xl font-bold text-primary-foreground leading-tight">
+                    Professional 
+                    <span className="block text-accent-foreground">Construction Materials</span>
+                  </h1>
+                  <p className="text-xl text-primary-foreground/90 leading-relaxed">
+                    Discover certified eco-friendly materials and equipment for your construction projects. 
+                    Connect with verified suppliers and build a sustainable future.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button 
+                    size="lg" 
+                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-card h-12 px-8 font-semibold"
+                    onClick={() => {
+                      const productsSection = document.querySelector('[data-products-section]');
+                      productsSection?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Package className="h-5 w-5 mr-2" />
+                    Explore Products
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 backdrop-blur-sm h-12 px-8"
+                    onClick={() => {
+                      if (currentUser) {
+                        const sellButton = document.querySelector('[data-sell-button]') as HTMLButtonElement;
+                        if (sellButton) {
+                          sellButton.click();
+                        }
+                      } else {
+                        handleAuthRequired();
+                      }
+                    }}
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    List Your Products
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                  <CardContent className="p-0 text-center">
+                    <div className="text-2xl font-bold text-primary-foreground">{products.length}+</div>
+                    <div className="text-sm text-primary-foreground/80">Active Products</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                  <CardContent className="p-0 text-center">
+                    <div className="text-2xl font-bold text-primary-foreground">500+</div>
+                    <div className="text-sm text-primary-foreground/80">Verified Suppliers</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                  <CardContent className="p-0 text-center">
+                    <div className="text-2xl font-bold text-primary-foreground">95%</div>
+                    <div className="text-sm text-primary-foreground/80">Customer Satisfaction</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                  <CardContent className="p-0 text-center">
+                    <div className="text-2xl font-bold text-primary-foreground">24/7</div>
+                    <div className="text-sm text-primary-foreground/80">Support Available</div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
+        {/* Professional Search and Filters */}
+        <div className="mb-12 space-y-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
-                placeholder="Search products..."
+                placeholder="Search construction materials, equipment, and more..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 text-lg"
+                className="pl-12 h-14 text-base bg-card border-border/60 shadow-card focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <Button
               variant="outline"
               size="lg"
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:w-auto"
+              className="lg:w-auto h-14 px-6 border-border/60 hover:bg-muted/60 shadow-card"
             >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
+              <Filter className="h-5 w-5 mr-2" />
+              Advanced Filters
+              <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </Button>
           </div>
 
-          {/* Filters Panel */}
+          {/* Advanced Filters Panel */}
           {showFilters && (
-            <Card className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Category</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <Card className="p-6 lg:p-8 shadow-card border-border/40 bg-card/50 backdrop-blur-sm animate-slide-up">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-card-foreground">Filter Products</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCategory("all");
+                      setSelectedCondition("all");
+                      setPriceRange([0, 5000]);
+                    }}
+                    className="text-muted-foreground hover:text-accent"
+                  >
+                    Clear All
+                  </Button>
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-card-foreground">Category</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="bg-background border-border/60">
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Condition</Label>
-                  <Select value={selectedCondition} onValueChange={setSelectedCondition}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All conditions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Conditions</SelectItem>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="reusable">Reusable</SelectItem>
-                      <SelectItem value="refurbished">Refurbished</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-card-foreground">Condition</Label>
+                    <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                      <SelectTrigger className="bg-background border-border/60">
+                        <SelectValue placeholder="All conditions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Conditions</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="reusable">Reusable</SelectItem>
+                        <SelectItem value="refurbished">Refurbished</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">
-                    Price Range: ${priceRange[0]} - ${priceRange[1]}
-                  </Label>
-                  <Slider
-                    value={priceRange}
-                    onValueChange={setPriceRange}
-                    max={5000}
-                    step={50}
-                    className="mt-2"
-                  />
-                </div>
-              </div>
-            </Card>
-          )}
-        </div>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-card-foreground">
+                      Price Range: ${priceRange[0]} - ${priceRange[1]}
+                    </Label>
+                    <div className="pt-2">
+                      <Slider
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        max={5000}
+                        step={50}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-card-foreground">Quick Actions</Label>
+                    <div className="flex flex-col gap-2">
+                      <Badge variant="outline" className="justify-center py-2 cursor-pointer hover:bg-muted/60">
+                        <Leaf className="h-3 w-3 mr-1" />
+                        Eco-Friendly Only
+                      </Badge>
+                      <Badge variant="outline" className="justify-center py-2 cursor-pointer hover:bg-muted/60">
+                        <Truck className="h-3 w-3 mr-1" />
+                        Fast Delivery
+                      </Badge>
+                    </div>
+                  </div>
+                 </div>
+               </div>
+             </Card>
+           )}
+         </div>
 
         {/* Products Grid */}
         <div 

@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { 
   Search, Plus, MessageSquare, ThumbsUp, Clock, User, CheckCircle, 
   Bell, Filter, TrendingUp, Users, Eye, Pin, Award, Heart, Send,
-  LogIn, UserPlus, X, Tag, Image, Link, ChevronDown, ChevronUp
+  LogIn, LogOut, UserPlus, X, Tag, Image, Link, ChevronDown, ChevronUp
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import PostComments from "@/components/PostComments";
@@ -364,41 +364,111 @@ const Community = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Community</h1>
-            <p className="text-gray-600 text-base lg:text-lg">
-              Connect with civil engineers worldwide and share knowledge
-            </p>
-            <CommunityStats />
+      
+      {/* Professional Hero Header */}
+      <div className="relative bg-gradient-to-br from-primary via-primary-variant to-accent py-16 lg:py-20 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-primary-foreground/20 to-transparent" />
+          <div className="absolute top-1/4 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+        </div>
+        
+        <div className="container mx-auto px-4 lg:px-6 max-w-7xl relative">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 backdrop-blur-sm">
+                  <Users className="h-3 w-3 mr-1" />
+                  Civil Engineering Community
+                </Badge>
+                <h1 className="text-4xl lg:text-6xl font-bold text-primary-foreground leading-tight">
+                  Engineering 
+                  <span className="block text-accent-foreground">Excellence Together</span>
+                </h1>
+                <p className="text-xl text-primary-foreground/90 leading-relaxed">
+                  Connect with professional civil engineers worldwide. Share knowledge, solve challenges, 
+                  and advance the field of sustainable construction.
+                </p>
+              </div>
+              
+              <div className="pt-4">
+                <CommunityStats />
+              </div>
+            </div>
+            
+            {/* Community Features Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                <CardContent className="p-0 space-y-2">
+                  <MessageSquare className="h-6 w-6 text-primary-foreground" />
+                  <div className="text-sm font-semibold text-primary-foreground">Technical Discussions</div>
+                  <div className="text-xs text-primary-foreground/80">Share project challenges and solutions</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                <CardContent className="p-0 space-y-2">
+                  <Award className="h-6 w-6 text-primary-foreground" />
+                  <div className="text-sm font-semibold text-primary-foreground">Expert Insights</div>
+                  <div className="text-xs text-primary-foreground/80">Learn from industry professionals</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                <CardContent className="p-0 space-y-2">
+                  <CheckCircle className="h-6 w-6 text-primary-foreground" />
+                  <div className="text-sm font-semibold text-primary-foreground">Verified Solutions</div>
+                  <div className="text-xs text-primary-foreground/80">Get answers from certified engineers</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
+                <CardContent className="p-0 space-y-2">
+                  <TrendingUp className="h-6 w-6 text-primary-foreground" />
+                  <div className="text-sm font-semibold text-primary-foreground">Industry Trends</div>
+                  <div className="text-xs text-primary-foreground/80">Stay updated with latest developments</div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-          <div className="mt-4 lg:mt-0 flex items-center space-x-2 lg:space-x-3">
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 lg:px-6 py-8 max-w-7xl">
+        {/* Action Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 pt-4">
+          <div>
+            <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Community Discussions</h2>
+            <p className="text-muted-foreground text-base lg:text-lg">
+              Join conversations that shape the future of construction
+            </p>
+          </div>
+          <div className="mt-4 lg:mt-0 flex items-center space-x-3 lg:space-x-4">
             {user && userProfile ? (
               <>
-                <div className="hidden lg:flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
+                <div className="hidden lg:flex items-center space-x-3 bg-card/60 backdrop-blur-sm rounded-xl px-4 py-2 border border-border/40">
+                  <Avatar className="h-9 w-9 ring-2 ring-primary/20">
                     {userProfile.avatar_url ? (
                       <AvatarImage src={userProfile.avatar_url} alt={userProfile.display_name} />
                     ) : (
-                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                         {userProfile.display_name?.charAt(0) || user.email?.charAt(0)}
                       </AvatarFallback>
                     )}
                   </Avatar>
-                  <span className="text-sm font-medium">{userProfile.display_name || user.email}</span>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold text-foreground">{userProfile.display_name || user.email}</div>
+                    <div className="text-xs text-muted-foreground">{userProfile.role || 'Member'}</div>
+                  </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  Logout
+                <Button variant="outline" size="sm" onClick={handleLogout} className="border-border/60 hover:bg-muted/60">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Sign Out</span>
                 </Button>
                 <Dialog open={showPostDialog} onOpenChange={setShowPostDialog}>
                   <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
-                      <Plus className="h-4 w-4 mr-1 lg:mr-2" />
-                      <span className="hidden sm:inline">New Post</span>
+                    <Button className="bg-primary hover:bg-primary-hover text-primary-foreground shadow-elegant h-10 px-6 font-semibold">
+                      <Plus className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">New Discussion</span>
                       <span className="sm:hidden">Post</span>
                     </Button>
                   </DialogTrigger>
@@ -406,14 +476,14 @@ const Community = () => {
               </>
             ) : (
               <>
-                <Button variant="outline" size="sm" onClick={handleSignIn}>
-                  <LogIn className="h-4 w-4 mr-1 lg:mr-2" />
+                <Button variant="outline" size="sm" onClick={handleSignIn} className="border-border/60 hover:bg-muted/60">
+                  <LogIn className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Sign In</span>
                   <span className="sm:hidden">Login</span>
                 </Button>
-                <Button size="sm" onClick={handleSignIn}>
-                  <UserPlus className="h-4 w-4 mr-1 lg:mr-2" />
-                  <span className="hidden sm:inline">Sign Up</span>
+                <Button size="sm" onClick={handleSignIn} className="bg-primary hover:bg-primary-hover shadow-elegant">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Join Community</span>
                   <span className="sm:hidden">Join</span>
                 </Button>
               </>
@@ -421,18 +491,30 @@ const Community = () => {
           </div>
         </div>
 
-        {/* Login Prompt for Non-authenticated Users */}
+        {/* Professional Login Prompt */}
         {!user && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-blue-900">Join the Community</h3>
-                  <p className="text-sm text-blue-700">Sign in to ask questions, share knowledge, and connect with fellow engineers.</p>
+          <Card className="mb-8 border-accent/30 bg-gradient-to-r from-accent-soft to-info-soft shadow-card">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Award className="h-5 w-5 text-accent" />
+                    <h3 className="font-bold text-accent-foreground">Join Our Professional Network</h3>
+                  </div>
+                  <p className="text-accent-foreground/80 leading-relaxed">
+                    Connect with certified engineers, participate in technical discussions, and advance your career. 
+                    Unlock exclusive access to industry insights and project collaborations.
+                  </p>
                 </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={handleSignIn}>Sign In</Button>
-                  <Button size="sm" onClick={handleSignIn}>Sign Up</Button>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                  <Button variant="outline" size="sm" onClick={handleSignIn} className="border-accent/40 text-accent hover:bg-accent/10">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                  <Button size="sm" onClick={handleSignIn} className="bg-accent hover:bg-accent-hover text-accent-foreground shadow-card">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Join Free
+                  </Button>
                 </div>
               </div>
             </CardContent>
