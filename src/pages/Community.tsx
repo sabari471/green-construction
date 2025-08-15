@@ -14,9 +14,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { 
   Search, Plus, MessageSquare, ThumbsUp, Clock, User, CheckCircle, 
   Bell, Filter, TrendingUp, Users, Eye, Pin, Award, Heart, Send,
-  LogIn, UserPlus, X, Tag, Image, Link
+  LogIn, UserPlus, X, Tag, Image, Link, ChevronDown, ChevronUp
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import PostComments from "@/components/PostComments";
+import CommunityStats from "@/components/CommunityStats";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -33,6 +35,7 @@ const Community = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [expandedPosts, setExpandedPosts] = useState(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -50,6 +53,27 @@ const Community = () => {
     loadPosts();
     loadCategories();
     loadUserAuth();
+    
+    // Set up real-time subscriptions for posts
+    const channel = supabase
+      .channel('posts-realtime')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'posts' },
+        (payload) => {
+          loadPosts(); // Reload posts when new post is added
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'posts' },
+        (payload) => {
+          loadPosts(); // Reload posts when post is updated
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadUserAuth = async () => {
@@ -319,6 +343,26 @@ const Community = () => {
     }
   };
 
+  const togglePostExpansion = (postId) => {
+    setExpandedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleReplyCountChange = (postId, newCount) => {
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, reply_count: newCount }
+        : post
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -330,20 +374,7 @@ const Community = () => {
             <p className="text-gray-600 text-base lg:text-lg">
               Connect with civil engineers worldwide and share knowledge
             </p>
-            <div className="flex items-center space-x-4 lg:space-x-6 mt-3 text-xs lg:text-sm text-gray-500">
-              <div className="flex items-center space-x-1">
-                <Users className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span>12.5K members</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <MessageSquare className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span>427 posts this week</span>
-              </div>
-              <div className="hidden sm:flex items-center space-x-1">
-                <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span>89% active users</span>
-              </div>
-            </div>
+            <CommunityStats />
           </div>
           <div className="mt-4 lg:mt-0 flex items-center space-x-2 lg:space-x-3">
             {user && userProfile ? (
@@ -462,26 +493,10 @@ const Community = () => {
               </CardContent>
             </Card>
 
-            {/* Quick Stats - Hidden on mobile when sidebar is collapsed */}
-            <Card className="hidden lg:block">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Community Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Posts</span>
-                  <span className="font-semibold">1,247</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Active Today</span>
-                  <span className="font-semibold text-green-600">156</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Questions Solved</span>
-                  <span className="font-semibold text-blue-600">892</span>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Real-time Community Stats */}
+            <div className="hidden lg:block">
+              <CommunityStats />
+            </div>
           </div>
 
           {/* Main Content */}
@@ -564,7 +579,10 @@ const Community = () => {
                         </div>
 
                         {/* Title */}
-                        <h3 className="text-base lg:text-lg font-semibold mb-2 hover:text-blue-600 cursor-pointer line-clamp-2">
+                        <h3 
+                          className="text-base lg:text-lg font-semibold mb-2 hover:text-blue-600 cursor-pointer line-clamp-2"
+                          onClick={() => togglePostExpansion(post.id)}
+                        >
                           {post.title}
                         </h3>
 
@@ -577,7 +595,12 @@ const Community = () => {
                         {post.tags && post.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-3 lg:mb-4">
                             {post.tags.slice(0, window.innerWidth < 640 ? 2 : 4).map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs px-2 py-1 hover:bg-gray-200 cursor-pointer">
+                              <Badge 
+                                key={index} 
+                                variant="secondary" 
+                                className="text-xs px-2 py-1 hover:bg-gray-200 cursor-pointer"
+                                onClick={() => setSearchTerm(tag)}
+                              >
                                 #{tag}
                               </Badge>
                             ))}
@@ -590,7 +613,7 @@ const Community = () => {
                         )}
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between text-xs lg:text-sm">
+                        <div className="flex items-center justify-between text-xs lg:text-sm mb-3">
                           <div className="flex items-center space-x-2 lg:space-x-4 text-gray-500">
                             <div className="flex items-center space-x-1">
                               <User className="h-3 w-3" />
@@ -607,10 +630,20 @@ const Community = () => {
                               <Eye className="h-3 w-3" />
                               <span>{post.view_count || 0}</span>
                             </div>
-                            <div className="flex items-center space-x-1 text-gray-500">
-                              <MessageSquare className="h-3 w-3" />
-                              <span>{post.reply_count || 0}</span>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 lg:h-8 px-2 hover:bg-blue-50 hover:text-blue-600"
+                              onClick={() => togglePostExpansion(post.id)}
+                            >
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              <span className="text-xs">{post.reply_count || 0}</span>
+                              {expandedPosts.has(post.id) ? (
+                                <ChevronUp className="h-3 w-3 ml-1" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              )}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -622,6 +655,17 @@ const Community = () => {
                             </Button>
                           </div>
                         </div>
+
+                        {/* Expandable Comments Section */}
+                        {expandedPosts.has(post.id) && (
+                          <div className="border-t pt-4">
+                            <PostComments 
+                              postId={post.id} 
+                              userProfile={userProfile}
+                              onReplyCountChange={(newCount) => handleReplyCountChange(post.id, newCount)}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
