@@ -408,6 +408,8 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
   
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
 
   // Load categories
   useEffect(() => {
@@ -433,44 +435,96 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
     e.preventDefault();
     setLoading(true);
     
-    const productData = {
-      title: formData.title,
-      description: formData.description,
-      price: parseFloat(formData.price),
-      unit: formData.unit,
-      condition: formData.condition,
-      location: formData.location,
-      co2_savings: parseInt(formData.co2_savings) || 0,
-      images: formData.images,
-      stock_quantity: parseInt(formData.stock_quantity),
-      category_id: formData.category_id,
-      status: 'active'
-    };
+    try {
+      let imageUrls = [];
+      
+      // Upload images if any are selected
+      if (selectedImages.length > 0) {
+        setUploadingImages(true);
+        imageUrls = await uploadImages(selectedImages);
+      }
+      
+      const productData = {
+        title: formData.title,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        unit: formData.unit,
+        condition: formData.condition,
+        location: formData.location,
+        co2_savings: parseInt(formData.co2_savings) || 0,
+        images: imageUrls,
+        stock_quantity: parseInt(formData.stock_quantity),
+        category_id: formData.category_id,
+        status: 'active'
+      };
 
-    const success = await onAddProduct(productData);
-    
-    if (success) {
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        price: '',
-        unit: '',
-        condition: 'new',
-        location: '',
-        co2_savings: '',
-        stock_quantity: '',
-        category_id: null,
-        images: []
-      });
-      onClose();
+      const success = await onAddProduct(productData);
+      
+      if (success) {
+        // Reset form
+        setFormData({
+          title: '',
+          description: '',
+          price: '',
+          unit: '',
+          condition: 'new',
+          location: '',
+          co2_savings: '',
+          stock_quantity: '',
+          category_id: null,
+          images: []
+        });
+        setSelectedImages([]);
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error submitting product:', error);
+      console.error('Failed to add product');
+    } finally {
+      setLoading(false);
+      setUploadingImages(false);
     }
-    
-    setLoading(false);
   };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setSelectedImages(files);
+      // Create preview URLs
+      const previews = files.map((file: File) => URL.createObjectURL(file));
+      setFormData(prev => ({ ...prev, images: previews }));
+    }
+  };
+
+  const uploadImages = async (files) => {
+    const uploadedUrls = [];
+    
+    for (const file of files) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      uploadedUrls.push(publicUrl);
+    }
+    
+    return uploadedUrls;
   };
 
   return (
@@ -598,13 +652,75 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="images">Product Images</Label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <input
+                id="images"
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <label htmlFor="images" className="cursor-pointer">
+                <div className="flex flex-col items-center space-y-2">
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <p className="text-sm text-gray-600">
+                    Click to upload product images
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Upload multiple images to showcase your product
+                  </p>
+                </div>
+              </label>
+            </div>
+            
+            {formData.images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {formData.images.map((image, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={image}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                      onClick={() => {
+        const newImages = formData.images.filter((_, i) => i !== index);
+        const newFiles = selectedImages.filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, images: newImages }));
+        setSelectedImages(newFiles);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
+            <Button type="submit" className="bg-primary" disabled={loading || uploadingImages}>
+              {loading || uploadingImages ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {uploadingImages ? 'Uploading Images...' : 'Adding Product...'}
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>
