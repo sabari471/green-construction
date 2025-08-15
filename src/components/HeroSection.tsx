@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Recycle, TrendingUp, Users } from "lucide-react";
 import heroImage from "@/assets/hero-construction.jpg";
+import AnimatedBackground from "./AnimatedBackground";
 
 const HeroSection = () => {
   return (
-    <section id="home" className="relative min-h-screen flex items-center">
+    <section id="home" className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0">
         <img 
@@ -13,6 +14,8 @@ const HeroSection = () => {
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-transparent" />
+        {/* Animated Background */}
+        <AnimatedBackground />
       </div>
 
       {/* Content */}
