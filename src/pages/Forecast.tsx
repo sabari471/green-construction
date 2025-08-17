@@ -5,9 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, TrendingDown, Minus, Download, Save, AlertTriangle, Cloud, Sun, CloudRain, Thermometer, Wind, Eye, Calendar, BarChart3, Target, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Download, Save, AlertTriangle, Cloud, Sun, CloudRain, Thermometer, Wind, Eye, Calendar, BarChart3, Target, Activity, FileText, Database, Zap, RefreshCw } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, Bar } from 'recharts';
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
+import { WeatherService } from "@/services/WeatherService";
+import { MaterialPriceService } from "@/services/MaterialPriceService";
+import { ExportService } from "@/services/ExportService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Material {
   id: string;
@@ -90,10 +95,17 @@ const Forecast = () => {
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("forecast");
+  const [user, setUser] = useState(null);
+  const [savedAnalyses, setSavedAnalyses] = useState([]);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [realTimeData, setRealTimeData] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCurrentPrices();
     fetchWeatherData();
+    loadUserAuth();
+    loadSavedAnalyses();
   }, []);
 
   useEffect(() => {
@@ -102,65 +114,141 @@ const Forecast = () => {
     }
   }, [selectedMaterial, selectedRegion, timeframe]);
 
+  const loadUserAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
+
+  const loadSavedAnalyses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_forecasts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setSavedAnalyses(data || []);
+    } catch (error) {
+      console.error('Error loading saved analyses:', error);
+    }
+  };
+
   const fetchCurrentPrices = async () => {
-    // Mock current prices in INR for Tamil Nadu regions
-    const mockPrices = [
-      { date: "2025-08-10", price: 420, region: "Coimbatore", material_id: "1" },
-      { date: "2025-08-10", price: 75, region: "Coimbatore", material_id: "2" },
-      { date: "2025-08-10", price: 45, region: "Coimbatore", material_id: "3" },
-      { date: "2025-08-10", price: 50, region: "Coimbatore", material_id: "4" },
-      { date: "2025-08-10", price: 8, region: "Coimbatore", material_id: "5" },
-      { date: "2025-08-10", price: 25, region: "Coimbatore", material_id: "6" },
-    ];
-    setCurrentPrices(mockPrices);
+    try {
+      if (realTimeData) {
+        // Get real-time prices for all materials
+        const prices = [];
+        for (const material of materials) {
+          const price = await MaterialPriceService.getRealTimePrice(material.id, selectedRegion);
+          prices.push({
+            date: new Date().toISOString().split('T')[0],
+            price,
+            region: selectedRegion,
+            material_id: material.id
+          });
+        }
+        setCurrentPrices(prices);
+      } else {
+        // Fallback to mock data
+        const mockPrices = [
+          { date: "2025-08-17", price: 420, region: selectedRegion, material_id: "1" },
+          { date: "2025-08-17", price: 75, region: selectedRegion, material_id: "2" },
+          { date: "2025-08-17", price: 45, region: selectedRegion, material_id: "3" },
+          { date: "2025-08-17", price: 50, region: selectedRegion, material_id: "4" },
+          { date: "2025-08-17", price: 8, region: selectedRegion, material_id: "5" },
+          { date: "2025-08-17", price: 25, region: selectedRegion, material_id: "6" },
+        ];
+        setCurrentPrices(mockPrices);
+      }
+    } catch (error) {
+      console.error('Error fetching current prices:', error);
+      toast({
+        title: "Price Data Warning",
+        description: "Using cached price data. Real-time data temporarily unavailable.",
+        variant: "destructive"
+      });
+    }
   };
 
   const fetchWeatherData = async () => {
-    // Generate mock weather data for the next 30 days
-    const weatherForecast: WeatherForecast[] = [];
-    const conditions = ["sunny", "cloudy", "rainy", "partly_cloudy"];
-    const today = new Date();
+    try {
+      if (realTimeData) {
+        const weatherForecast = await WeatherService.getWeatherForecast(selectedRegion, 30);
+        setWeatherData(weatherForecast);
+      } else {
+        // Fallback weather data
+        const weatherForecast: WeatherForecast[] = [];
+        const conditions = ["sunny", "cloudy", "rainy", "partly_cloudy"];
+        const today = new Date();
 
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      
-      const condition = conditions[Math.floor(Math.random() * conditions.length)];
-      const temperature = 28 + Math.random() * 10; // 28-38°C typical for Tamil Nadu
-      const humidity = 60 + Math.random() * 30; // 60-90%
-      const rainfall = condition === "rainy" ? Math.random() * 50 : Math.random() * 5;
-      
-      let impact_score = 0;
-      if (condition === "rainy" && rainfall > 10) impact_score = -0.15;
-      else if (condition === "sunny" && temperature > 35) impact_score = -0.05;
-      else if (condition === "cloudy") impact_score = 0.02;
+        for (let i = 0; i < 30; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() + i);
+          
+          const condition = conditions[Math.floor(Math.random() * conditions.length)];
+          const temperature = 28 + Math.random() * 10; // 28-38°C typical for Tamil Nadu
+          const humidity = 60 + Math.random() * 30; // 60-90%
+          const rainfall = condition === "rainy" ? Math.random() * 50 : Math.random() * 5;
+          
+          let impact_score = 0;
+          if (condition === "rainy" && rainfall > 10) impact_score = -0.15;
+          else if (condition === "sunny" && temperature > 35) impact_score = -0.05;
+          else if (condition === "cloudy") impact_score = 0.02;
 
-      weatherForecast.push({
-        date: date.toISOString().split('T')[0],
-        temperature: Math.round(temperature * 10) / 10,
-        humidity: Math.round(humidity),
-        rainfall: Math.round(rainfall * 10) / 10,
-        condition,
-        impact_score
+          weatherForecast.push({
+            date: date.toISOString().split('T')[0],
+            temperature: Math.round(temperature * 10) / 10,
+            humidity: Math.round(humidity),
+            rainfall: Math.round(rainfall * 10) / 10,
+            condition,
+            impact_score
+          });
+        }
+        
+        setWeatherData(weatherForecast);
+      }
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+      toast({
+        title: "Weather Data Warning",
+        description: "Using cached weather data. Real-time data temporarily unavailable.",
+        variant: "destructive"
       });
     }
-    
-    setWeatherData(weatherForecast);
   };
 
   const fetchForecastData = async () => {
     try {
       setLoading(true);
-      const mockData = generateAdvancedForecastData();
-      setForecastData(mockData);
+      let data;
+      
+      if (realTimeData) {
+        // Get enhanced forecast with real market data
+        const marketData = await MaterialPriceService.getMarketAnalysis(selectedMaterial);
+        data = generateAdvancedForecastData(marketData);
+      } else {
+        data = generateAdvancedForecastData();
+      }
+      
+      setForecastData(data);
+      
+      toast({
+        title: "Forecast Updated",
+        description: `Generated ${data.length} data points for ${selectedMaterialData?.name}`,
+      });
     } catch (error) {
       console.error('Error fetching forecast data:', error);
+      toast({
+        title: "Forecast Error",
+        description: "Failed to generate forecast. Using cached data.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const generateAdvancedForecastData = (): ForecastData[] => {
+  const generateAdvancedForecastData = (marketData?: any): ForecastData[] => {
     const data: ForecastData[] = [];
     const startDate = new Date();
     const selectedMaterialData = materials.find(m => m.id === selectedMaterial);
@@ -178,17 +266,25 @@ const Forecast = () => {
 
     const basePrice = currentPrice * (regionalMultipliers[selectedRegion] || 1.0);
     const isWeatherSensitive = materialCategories[selectedMaterialData?.category as keyof typeof materialCategories]?.weatherSensitive || false;
+    
+    // Use real market data if available
+    const marketTrends = marketData?.market_trends || {
+      demand_index: 0.8 + Math.random() * 0.4,
+      supply_index: 0.7 + Math.random() * 0.3,
+      volatility: Math.random() * 0.3,
+      seasonal_factor: Math.sin((new Date().getMonth() / 12) * 2 * Math.PI) * 0.1
+    };
 
     for (let i = 0; i < monthsToGenerate; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
       
-      // Advanced price calculation factors
+      // Advanced price calculation factors with real market data
       const monthlyInflation = 0.003 + Math.random() * 0.004; // 3.6-8.4% annually
-      const seasonalFactor = Math.sin((i % 12) * Math.PI / 6) * 0.08; // 8% seasonal variation
-      const marketVolatility = (Math.random() - 0.5) * 0.12; // ±12% volatility
-      const supplyDemandRatio = 0.9 + Math.random() * 0.2; // 0.9 to 1.1
-      const weatherImpact = isWeatherSensitive ? (Math.random() - 0.5) * 0.1 : 0;
+      const seasonalFactor = marketTrends.seasonal_factor + Math.sin((i % 12) * Math.PI / 6) * 0.04;
+      const marketVolatility = marketTrends.volatility * (Math.random() - 0.5) * 0.5;
+      const supplyDemandRatio = 0.8 + (marketTrends.demand_index / marketTrends.supply_index) * 0.4;
+      const weatherImpact = isWeatherSensitive ? (weatherData[i % weatherData.length]?.impact_score || 0) : 0;
       
       // Calculate trend
       let trend = 'stable';
@@ -262,6 +358,111 @@ const Forecast = () => {
   const priceChange = forecastData.length > 1 
     ? ((forecastData[forecastData.length - 1].predicted_price - forecastData[0].predicted_price) / forecastData[0].predicted_price) * 100
     : 0;
+
+  const handleSaveAnalysis = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your analysis",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const analysisData = {
+        name: `${selectedMaterialData?.name} - ${selectedRegion} - ${timeframe}Y`,
+        user_id: user.id,
+        materials_config: JSON.parse(JSON.stringify({
+          material_id: selectedMaterial,
+          material_name: selectedMaterialData?.name,
+          region: selectedRegion,
+          timeframe: timeframe,
+          forecast_data: forecastData.slice(0, 12).map(item => ({
+            forecast_date: item.forecast_date,
+            predicted_price: item.predicted_price,
+            confidence_level: item.confidence_level,
+            trend: item.trend,
+            weather_impact: item.weather_impact,
+            seasonal_factor: item.seasonal_factor,
+            supply_demand_ratio: item.supply_demand_ratio,
+            market_volatility: item.market_volatility
+          })),
+          generated_at: new Date().toISOString(),
+          summary: {
+            avgConfidence: averageConfidence,
+            priceChange: priceChange,
+            overallTrend: priceChange > 5 ? 'Increasing' : priceChange < -5 ? 'Decreasing' : 'Stable'
+          }
+        }))
+      };
+
+      const { error } = await supabase
+        .from('user_forecasts')
+        .insert(analysisData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Analysis Saved",
+        description: "Your forecast analysis has been saved successfully",
+      });
+
+      loadSavedAnalyses();
+    } catch (error) {
+      console.error('Error saving analysis:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save analysis. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExport = async (format: 'pdf' | 'excel' | 'csv') => {
+    try {
+      setExportLoading(true);
+      
+      const exportOptions = {
+        title: 'Material Price Forecast Report',
+        material: selectedMaterialData?.name || 'Unknown Material',
+        region: selectedRegion,
+        timeframe: `${timeframe} Year${timeframe !== '1' ? 's' : ''}`,
+        data: forecastData,
+        summary: {
+          avgConfidence: averageConfidence,
+          priceChange: priceChange,
+          overallTrend: priceChange > 5 ? 'Increasing' : priceChange < -5 ? 'Decreasing' : 'Stable'
+        }
+      };
+
+      switch (format) {
+        case 'pdf':
+          await ExportService.exportToPDF(exportOptions);
+          break;
+        case 'excel':
+          await ExportService.exportToExcel(exportOptions);
+          break;
+        case 'csv':
+          await ExportService.exportToCSV(exportOptions);
+          break;
+      }
+
+      toast({
+        title: "Export Successful",
+        description: `Report exported as ${format.toUpperCase()} successfully`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export report. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -353,14 +554,53 @@ const Forecast = () => {
             </div>
 
             <div className="flex flex-col justify-end gap-3">
-              <Button className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setRealTimeData(!realTimeData)}
+                  className={`${realTimeData ? 'bg-primary text-primary-foreground' : ''}`}
+                >
+                  <Zap className="h-4 w-4 mr-1" />
+                  Real-time
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchForecastData}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <Button 
+                className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                onClick={handleSaveAnalysis}
+                disabled={!user}
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Save Analysis
               </Button>
-              <Button variant="outline" className="h-12">
-                <Download className="h-4 w-4 mr-2" />
-                Export Report
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-12"
+                  onClick={() => handleExport('pdf')}
+                  disabled={exportLoading}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-12"
+                  onClick={() => handleExport('excel')}
+                  disabled={exportLoading}
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  Excel
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

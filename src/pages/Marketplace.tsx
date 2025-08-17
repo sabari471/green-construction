@@ -300,22 +300,25 @@ const AppProvider = ({ children }) => {
 // Professional Product Card Component
 const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
   <Card className="group hover:shadow-elegant transition-all duration-500 border border-border/40 bg-card/50 backdrop-blur-sm animate-fade-in">
-    <div className="relative h-52 bg-gradient-to-br from-muted to-secondary rounded-t-lg overflow-hidden">
+    <div className="relative h-56 bg-gradient-to-br from-muted to-secondary rounded-t-lg overflow-hidden">
       <img
-        src={product.images[0]}
+        src={product.images[0] || '/placeholder.svg'}
         alt={product.title}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
       
+      {/* Professional Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
       {/* Action Buttons */}
-      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
         <Button
           size="sm"
           variant="secondary"
-          className={`h-9 w-9 p-0 backdrop-blur-md border shadow-card ${
+          className={`h-10 w-10 p-0 backdrop-blur-lg border shadow-elegant rounded-full ${
             product.isLiked 
-              ? 'bg-accent/20 text-accent border-accent/30' 
-              : 'bg-card/80 text-foreground hover:bg-card/90'
+              ? 'bg-primary/90 text-primary-foreground border-primary/30' 
+              : 'bg-white/90 text-foreground hover:bg-white border-white/30'
           }`}
           onClick={() => onToggleLike(product.id)}
         >
@@ -324,72 +327,93 @@ const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
         <Button
           size="sm"
           variant="secondary"
-          className="h-9 w-9 p-0 backdrop-blur-md bg-card/80 border shadow-card hover:bg-card/90"
+          className="h-10 w-10 p-0 backdrop-blur-lg bg-white/90 border border-white/30 shadow-elegant hover:bg-white rounded-full"
           onClick={() => onViewDetails(product)}
         >
           <Eye className="h-4 w-4" />
         </Button>
       </div>
       
-      {/* Condition Badge */}
-      {product.condition !== 'new' && (
-        <Badge className="absolute top-3 left-3 bg-success-soft text-success-foreground border-success/30 font-medium">
-          <div className="w-1.5 h-1.5 bg-success rounded-full mr-1.5" />
-          {product.condition}
-        </Badge>
-      )}
+      {/* Status Badges */}
+      <div className="absolute top-4 left-4 flex flex-col gap-2">
+        {product.condition !== 'new' && (
+          <Badge className="bg-success text-success-foreground border-success/30 font-medium shadow-sm">
+            <div className="w-1.5 h-1.5 bg-success-foreground rounded-full mr-1.5" />
+            {product.condition}
+          </Badge>
+        )}
+        
+        {product.co2_savings > 0 && (
+          <Badge className="bg-success/10 text-success border border-success/20 shadow-sm backdrop-blur-sm">
+            <Leaf className="h-3 w-3 mr-1" />
+            {product.co2_savings}kg CO₂ saved
+          </Badge>
+        )}
+      </div>
       
-      {/* CO2 Savings Badge */}
-      {product.co2_savings > 0 && (
-        <Badge className="absolute bottom-3 left-3 bg-success text-success-foreground shadow-card">
-          <Leaf className="h-3 w-3 mr-1" />
-          {product.co2_savings}kg CO₂ saved
+      {/* Professional Stock Indicator */}
+      <div className="absolute bottom-4 left-4">
+        <Badge 
+          variant="outline" 
+          className={`backdrop-blur-lg border shadow-sm ${
+            product.stock_quantity > 10 
+              ? 'bg-success/10 text-success border-success/30' 
+              : 'bg-warning/10 text-warning border-warning/30'
+          }`}
+        >
+          {product.stock_quantity} in stock
         </Badge>
-      )}
+      </div>
     </div>
 
-    <CardHeader className="p-5 pb-3 space-y-3">
-      <CardTitle className="text-lg line-clamp-2 font-semibold text-card-foreground group-hover:text-primary transition-colors duration-300">
-        {product.title}
-      </CardTitle>
+    <CardHeader className="p-6 pb-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <CardTitle className="text-lg line-clamp-2 font-semibold text-card-foreground group-hover:text-primary transition-colors duration-300 leading-tight">
+          {product.title}
+        </CardTitle>
+        <div className="flex items-center bg-warning/10 text-warning px-2 py-1 rounded-lg shrink-0 border border-warning/20">
+          <Star className="h-3.5 w-3.5 fill-warning text-warning mr-1" />
+          <span className="font-medium text-sm">{product.rating}</span>
+        </div>
+      </div>
       
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary/60" />
           <span className="font-medium">{product.seller.location}</span>
         </div>
-        <div className="flex items-center bg-warning-soft text-warning-foreground px-2 py-1 rounded-md">
-          <Star className="h-3.5 w-3.5 fill-warning text-warning mr-1" />
-          <span className="font-medium">{product.rating}</span>
-          <span className="text-xs ml-1">({product.reviews_count})</span>
+        <div className="text-xs text-muted-foreground">
+          {product.reviews_count} reviews
         </div>
       </div>
     </CardHeader>
 
-    <CardContent className="p-5 pt-0 space-y-4">
-      <CardDescription className="line-clamp-2 text-muted-foreground leading-relaxed">
+    <CardContent className="p-6 pt-0 space-y-5">
+      <CardDescription className="line-clamp-2 text-muted-foreground leading-relaxed text-sm">
         {product.description}
       </CardDescription>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div className="space-y-1">
-          <div className="text-2xl font-bold text-primary">
+          <div className="text-3xl font-bold text-primary">
             ₹{product.price.toLocaleString('en-IN')}
-            <span className="text-sm font-normal text-muted-foreground ml-1">
-              /{product.unit}
-            </span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            per {product.unit}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-sm text-muted-foreground">In Stock</div>
-          <div className="text-sm font-semibold text-success">{product.stock_quantity} units</div>
+          <div className="text-sm font-semibold text-success flex items-center gap-1">
+            <CheckCircle className="h-3 w-3" />
+            Available
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-3 pt-2">
         <Button 
           size="sm" 
-          className="flex-1 h-9 bg-primary hover:bg-primary-hover text-primary-foreground shadow-elegant font-medium"
+          className="flex-1 h-10 bg-primary hover:bg-primary-hover text-primary-foreground shadow-elegant font-medium transition-all duration-200"
           onClick={() => onAddToCart(product)}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
@@ -398,7 +422,7 @@ const ProductCard = ({ product, onAddToCart, onViewDetails, onToggleLike }) => (
         <Button 
           size="sm" 
           variant="outline"
-          className="px-4 h-9 border-border/60 hover:bg-muted/60"
+          className="px-6 h-10 border-border/60 hover:bg-muted/60 transition-all duration-200"
           onClick={() => onViewDetails(product)}
         >
           Details

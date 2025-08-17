@@ -368,66 +368,77 @@ const Community = () => {
       <Navbar />
       
       {/* Professional Hero Header */}
-      <div className="relative bg-gradient-to-br from-primary via-primary-variant to-accent py-16 lg:py-20 overflow-hidden">
-        {/* Background Pattern */}
+      <div className="relative bg-gradient-to-br from-primary via-primary-variant to-accent py-20 lg:py-24 overflow-hidden">
+        {/* Enhanced Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-primary-foreground/20 to-transparent" />
-          <div className="absolute top-1/4 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 left-0 w-80 h-80 bg-primary/20 rounded-full blur-2xl animate-pulse delay-1000" />
         </div>
         
         <div className="container mx-auto px-4 lg:px-6 max-w-7xl relative">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-            <div className="space-y-6">
-              <div className="space-y-4">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <div className="space-y-6">
                 <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 backdrop-blur-sm">
                   <Users className="h-3 w-3 mr-1" />
-                  Civil Engineering Community
+                  Professional Engineering Community
                 </Badge>
-                <h1 className="text-4xl lg:text-6xl font-bold text-primary-foreground leading-tight">
+                <h1 className="text-4xl lg:text-7xl font-bold text-primary-foreground leading-tight">
                   Engineering 
-                  <span className="block text-accent-foreground">Excellence Together</span>
+                  <span className="block text-accent-foreground bg-gradient-to-r from-accent-foreground to-primary-foreground bg-clip-text">
+                    Excellence Together
+                  </span>
                 </h1>
-                <p className="text-xl text-primary-foreground/90 leading-relaxed">
+                <p className="text-xl lg:text-2xl text-primary-foreground/90 leading-relaxed font-light">
                   Connect with professional civil engineers worldwide. Share knowledge, solve challenges, 
-                  and advance the field of sustainable construction.
+                  and advance the field of sustainable construction through collaborative innovation.
                 </p>
               </div>
               
-              <div className="pt-4">
+              <div className="pt-6">
                 <CommunityStats />
               </div>
             </div>
             
-            {/* Community Features Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
-                <CardContent className="p-0 space-y-2">
-                  <MessageSquare className="h-6 w-6 text-primary-foreground" />
-                  <div className="text-sm font-semibold text-primary-foreground">Technical Discussions</div>
-                  <div className="text-xs text-primary-foreground/80">Share project challenges and solutions</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
-                <CardContent className="p-0 space-y-2">
-                  <Award className="h-6 w-6 text-primary-foreground" />
-                  <div className="text-sm font-semibold text-primary-foreground">Expert Insights</div>
-                  <div className="text-xs text-primary-foreground/80">Learn from industry professionals</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
-                <CardContent className="p-0 space-y-2">
-                  <CheckCircle className="h-6 w-6 text-primary-foreground" />
-                  <div className="text-sm font-semibold text-primary-foreground">Verified Solutions</div>
-                  <div className="text-xs text-primary-foreground/80">Get answers from certified engineers</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-4">
-                <CardContent className="p-0 space-y-2">
-                  <TrendingUp className="h-6 w-6 text-primary-foreground" />
-                  <div className="text-sm font-semibold text-primary-foreground">Industry Trends</div>
-                  <div className="text-xs text-primary-foreground/80">Stay updated with latest developments</div>
-                </CardContent>
-              </Card>
+            {/* Enhanced Community Features Grid */}
+            <div className="grid grid-cols-2 gap-6">
+              {[
+                {
+                  icon: MessageSquare,
+                  title: "Technical Discussions",
+                  description: "Share project challenges and innovative solutions",
+                  color: "text-blue-400"
+                },
+                {
+                  icon: Award,
+                  title: "Expert Insights",
+                  description: "Learn from certified industry professionals",
+                  color: "text-yellow-400"
+                },
+                {
+                  icon: CheckCircle,
+                  title: "Verified Solutions",
+                  description: "Get peer-reviewed answers from experts",
+                  color: "text-green-400"
+                },
+                {
+                  icon: TrendingUp,
+                  title: "Industry Trends",
+                  description: "Stay updated with latest developments",
+                  color: "text-purple-400"
+                }
+              ].map((feature, index) => (
+                <Card key={index} className="bg-primary-foreground/10 border-primary-foreground/20 backdrop-blur-sm p-6 hover:bg-primary-foreground/15 transition-all duration-300 group">
+                  <CardContent className="p-0 space-y-4">
+                    <feature.icon className={`h-8 w-8 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
+                    <div className="space-y-2">
+                      <div className="text-lg font-semibold text-primary-foreground">{feature.title}</div>
+                      <div className="text-sm text-primary-foreground/80 leading-relaxed">{feature.description}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>
