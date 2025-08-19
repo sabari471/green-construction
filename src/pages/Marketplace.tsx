@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext, useReducer } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Search, Filter, Heart, ShoppingCart, MapPin, Star, Leaf, 
   User, Package, Truck, CreditCard, Plus, Minus, X, Menu,
   ShoppingBag, Bell, Settings, LogOut, ChevronDown, Eye,
-  ArrowLeft, CheckCircle, Clock, AlertCircle, Upload, Camera
+  ArrowLeft, CheckCircle, Clock, AlertCircle, Upload, Camera,
+  Home, StarHalf, MessageCircle, ThumbsUp, ThumbsDown, Send
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import ProductReviews from "@/components/ProductReviews";
 
 // Types
 interface Product {
@@ -44,6 +48,19 @@ interface Product {
     name: string;
   };
   isLiked?: boolean;
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  reviewer_id: string;
+  product_id: string;
+  reviewer?: {
+    display_name: string;
+    avatar_url: string;
+  };
 }
 
 interface CartItem {
@@ -175,7 +192,7 @@ const AppProvider = ({ children }) => {
     }
   };
 
-  // Load products from Supabase
+  // Load products from Supabase with real ratings
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -190,14 +207,28 @@ const AppProvider = ({ children }) => {
 
         if (error) throw error;
         
-        const formattedProducts = products?.map(product => ({
-          ...product,
-          isLiked: false,
-          rating: 4.5, // Mock rating for now
-          reviews_count: Math.floor(Math.random() * 100) + 1
-        })) || [];
+        // Get ratings for each product
+        const productsWithRatings = await Promise.all(
+          (products || []).map(async (product) => {
+            const { data: reviews } = await supabase
+              .from('reviews')
+              .select('rating')
+              .eq('product_id', product.id);
+            
+            const avgRating = reviews && reviews.length > 0 
+              ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+              : 0;
+            
+            return {
+              ...product,
+              isLiked: false,
+              rating: Number(avgRating.toFixed(1)),
+              reviews_count: reviews?.length || 0
+            };
+          })
+        );
 
-        dispatch({ type: 'SET_PRODUCTS', products: formattedProducts });
+        dispatch({ type: 'SET_PRODUCTS', products: productsWithRatings });
       } catch (error) {
         console.error('Error loading products:', error);
         toast({
@@ -209,6 +240,37 @@ const AppProvider = ({ children }) => {
     };
 
     loadProducts();
+
+    // Set up real-time subscriptions
+    const productsChannel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        () => {
+          loadProducts(); // Reload products on any change
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reviews'
+        },
+        () => {
+          loadProducts(); // Reload products when reviews change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productsChannel);
+    };
   }, [toast]);
 
   const addProduct = async (productData) => {
@@ -770,9 +832,10 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
   );
 };
 
-// Header Component
+// Header Component  
 const Header = ({ user, cartCount, onCartOpen, onAddProduct, currentUser, profile, onAuth }) => {
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -780,15 +843,26 @@ const Header = ({ user, cartCount, onCartOpen, onAddProduct, currentUser, profil
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white shadow-sm border-b">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
+              {/* Home Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+                className="flex items-center space-x-1 hover:bg-primary/10 transition-colors"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Home</span>
+              </Button>
+              
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Leaf className="h-5 w-5 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                  <Leaf className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold text-gray-900">EcoMarket</span>
+                <span className="text-xl font-bold text-foreground">GreenConstructHub</span>
               </div>
             </div>
             
@@ -797,46 +871,47 @@ const Header = ({ user, cartCount, onCartOpen, onAddProduct, currentUser, profil
                 <Button 
                   variant="ghost" 
                   onClick={() => setShowAddProduct(true)}
+                  className="bg-success/10 text-success hover:bg-success/20 border border-success/20"
                   data-sell-button
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Sell Product
                 </Button>
               )}
-              <a href="#" className="text-gray-600 hover:text-primary transition-colors">Categories</a>
-              <a href="#" className="text-gray-600 hover:text-primary transition-colors">About</a>
+              <a href="#categories" className="text-muted-foreground hover:text-primary transition-colors font-medium">Categories</a>
+              <a href="#about" className="text-muted-foreground hover:text-primary transition-colors font-medium">About</a>
             </nav>
 
             <div className="flex items-center space-x-4">
               {currentUser && (
                 <>
-                  <Button variant="ghost" size="sm" className="relative">
+                  <Button variant="ghost" size="sm" className="relative hover:bg-muted/60">
                     <Bell className="h-5 w-5" />
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">3</Badge>
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary text-primary-foreground">3</Badge>
                   </Button>
                   
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="relative"
+                    className="relative hover:bg-muted/60"
                     onClick={onCartOpen}
                   >
                     <ShoppingCart className="h-5 w-5" />
                     {cartCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary text-primary-foreground">
                         {cartCount}
                       </Badge>
                     )}
                   </Button>
 
-                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive">
                     <LogOut className="h-5 w-5" />
                   </Button>
                 </>
               )}
 
               {!currentUser && (
-                <Button onClick={onAuth}>
+                <Button onClick={onAuth} className="bg-primary hover:bg-primary-hover">
                   Sign In
                 </Button>
               )}
@@ -945,7 +1020,7 @@ const CartSidebar = ({ isOpen, onClose, cart, updateQuantity, removeFromCart, to
 );
 
 // Product Detail Modal
-const ProductDetailModal = ({ product, isOpen, onClose, onAddToCart }) => {
+const ProductDetailModal = ({ product, isOpen, onClose, onAddToCart, currentUser, currentUserProfile }) => {
   if (!product) return null;
 
   return (
@@ -1692,6 +1767,8 @@ const EcommercePlatform = () => {
           setSelectedProduct(null);
         }}
         onAddToCart={handleAddToCart}
+        currentUser={currentUser}
+        currentUserProfile={profile}
       />
 
       {/* Checkout Modal */}
