@@ -1234,23 +1234,49 @@ const Forecast = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [`${value}%`, 'Market Volatility']} />
-                      <Area
-                        type="monotone"
-                        dataKey="volatility"
-                        stroke="#ef4444"
-                        fill="#fecaca"
-                        name="Market Volatility"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                {loading ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+                      <div className="text-gray-600">Loading market analysis...</div>
+                    </div>
+                  </div>
+                ) : chartData.length === 0 ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-center text-gray-500">
+                      <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No market data available</p>
+                      <p className="text-sm">Generate forecast to see analysis</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(value) => value.split(' ')[0]} // Show only month
+                        />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip 
+                          formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Market Volatility']}
+                          contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="volatility"
+                          stroke="#ef4444"
+                          fill="#fecaca"
+                          fillOpacity={0.6}
+                          name="Market Volatility"
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1262,47 +1288,168 @@ const Forecast = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Monsoon Season Impact</p>
-                      <p className="text-sm text-gray-600">
-                        Heavy rainfall during June-September affects transportation and storage costs
-                      </p>
+                {loading ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <div className="text-gray-600">Loading market factors...</div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Regional Demand Patterns</p>
-                      <p className="text-sm text-gray-600">
-                        Chennai and Coimbatore show highest construction activity
-                      </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Monsoon Season Impact</p>
+                        <p className="text-sm text-gray-600">
+                          Heavy rainfall during June-September affects transportation and storage costs
+                        </p>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Current Impact</span>
+                            <span className="font-medium">
+                              {weatherData.length > 0 ? 
+                                `${(weatherData[0].impact_score * 100).toFixed(1)}%` : 
+                                'Calculating...'
+                              }
+                            </span>
+                          </div>
+                          <Progress 
+                            value={weatherData.length > 0 ? Math.abs(weatherData[0].impact_score * 100) : 0} 
+                            className="h-2" 
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <Activity className="h-5 w-5 text-purple-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Supply Chain Efficiency</p>
-                      <p className="text-sm text-gray-600">
-                        Port cities have 8-12% lower logistics costs
-                      </p>
+                    
+                    <div className="flex items-start space-x-3">
+                      <TrendingUp className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Regional Demand Patterns</p>
+                        <p className="text-sm text-gray-600">
+                          {selectedRegion === 'Chennai' ? 'Highest construction activity in the state' :
+                           selectedRegion === 'Coimbatore' ? 'Major industrial and construction hub' :
+                           'Growing construction demand in the region'}
+                        </p>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Regional Multiplier</span>
+                            <span className="font-medium">
+                              {(() => {
+                                const multipliers = {
+                                  "Chennai": "1.15x", "Coimbatore": "1.00x", "Madurai": "0.95x",
+                                  "Tiruchirappalli": "0.92x", "Salem": "0.90x", "Tirunelveli": "0.88x"
+                                };
+                                return multipliers[selectedRegion as keyof typeof multipliers] || "1.00x";
+                              })()}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(() => {
+                              const multipliers = {
+                                "Chennai": 115, "Coimbatore": 100, "Madurai": 95,
+                                "Tiruchirappalli": 92, "Salem": 90, "Tirunelveli": 88
+                              };
+                              return multipliers[selectedRegion as keyof typeof multipliers] || 100;
+                            })()} 
+                            className="h-2" 
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Seasonal Construction Cycles</p>
-                      <p className="text-sm text-gray-600">
-                        Peak demand during October-March construction season
-                      </p>
+                    
+                    <div className="flex items-start space-x-3">
+                      <Activity className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Supply Chain Efficiency</p>
+                        <p className="text-sm text-gray-600">
+                          {['Chennai', 'Thoothukudi', 'Ennore'].includes(selectedRegion) ? 
+                            'Port cities have 8-12% lower logistics costs' :
+                            'Inland transportation adds to material costs'
+                          }
+                        </p>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Efficiency Rating</span>
+                            <span className="font-medium">
+                              {forecastData.length > 0 ? 
+                                `${(forecastData[0].supply_demand_ratio * 85).toFixed(0)}%` : 
+                                'Calculating...'
+                              }
+                            </span>
+                          </div>
+                          <Progress 
+                            value={forecastData.length > 0 ? forecastData[0].supply_demand_ratio * 85 : 0} 
+                            className="h-2" 
+                          />
+                        </div>
+                      </div>
                     </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <Calendar className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Seasonal Construction Cycles</p>
+                        <p className="text-sm text-gray-600">
+                          Peak demand during October-March construction season
+                        </p>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Current Season Impact</span>
+                            <span className="font-medium">
+                              {(() => {
+                                const month = new Date().getMonth();
+                                const isPeakSeason = month >= 9 || month <= 2; // Oct-Mar
+                                return isPeakSeason ? '+8-15%' : '-5-8%';
+                              })()}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(() => {
+                              const month = new Date().getMonth();
+                              const isPeakSeason = month >= 9 || month <= 2;
+                              return isPeakSeason ? 75 : 35;
+                            })()} 
+                            className="h-2" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI Insights Display */}
+                    {forecastData.length > 0 && (
+                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          AI Market Analysis
+                        </h4>
+                        <div className="space-y-2 text-sm text-blue-800">
+                          <div className="flex justify-between">
+                            <span>Overall Trend:</span>
+                            <span className="font-medium capitalize">
+                              {forecastData[forecastData.length - 1]?.trend || 'Stable'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Market Volatility:</span>
+                            <span className="font-medium">
+                              {forecastData.length > 0 ? 
+                                `${forecastData[0].market_volatility}%` : 
+                                'Calculating...'
+                              }
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Average Confidence:</span>
+                            <span className="font-medium">
+                              {Math.round(averageConfidence)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
