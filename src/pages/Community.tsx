@@ -259,14 +259,11 @@ const Community = () => {
     ));
   };
 
-  const incrementViewCount = async (postId) => {
-    try {
-      // For now, just update the local state since the RPC function needs to be created
-      // The RPC function would be: CREATE OR REPLACE FUNCTION increment_view_count(post_id UUID) ...
-      console.log('View count incremented for post:', postId);
-    } catch (error) {
-      console.error('Error incrementing view count:', error);
-    }
+  // Increment view count for posts (placeholder for future implementation)
+  const incrementViewCount = async (postId: string) => {
+    // This function will be implemented when the RPC function is created in the database
+    // For now, we just log the action
+    console.log('View count would be incremented for post:', postId);
   };
 
   const loadCategories = async () => {
