@@ -14,7 +14,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { 
   Search, Plus, MessageSquare, ThumbsUp, Clock, User, CheckCircle, 
   Bell, Filter, TrendingUp, Users, Eye, Pin, Award, Heart, Send,
-  LogIn, LogOut, UserPlus, X, Tag, Image, Link, ChevronDown, ChevronUp
+  LogIn, LogOut, UserPlus, X, Tag, Image, Link, ChevronDown, ChevronUp,
+  Bookmark, BookmarkCheck, Share2, ExternalLink, AlertCircle, Zap, Home
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import PostComments from "@/components/PostComments";
@@ -36,6 +37,10 @@ const Community = () => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [expandedPosts, setExpandedPosts] = useState(new Set());
+  const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
+  const [notifications, setNotifications] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [trendingPosts, setTrendingPosts] = useState([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -53,28 +58,92 @@ const Community = () => {
     loadPosts();
     loadCategories();
     loadUserAuth();
+    loadTrendingPosts();
+    setupRealtimeSubscriptions();
     
-    // Set up real-time subscriptions for posts
-    const channel = supabase
+    return () => {
+      // Cleanup handled in setupRealtimeSubscriptions
+    };
+  }, []);
+
+  const setupRealtimeSubscriptions = () => {
+    // Posts real-time updates
+    const postsChannel = supabase
       .channel('posts-realtime')
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'posts' },
         (payload) => {
-          loadPosts(); // Reload posts when new post is added
+          handleNewPost(payload.new);
+          toast({
+            title: "New discussion posted!",
+            description: `"${payload.new.title}" by ${payload.new.author_name || 'Someone'}`,
+            action: (
+              <Button variant="outline" size="sm" onClick={() => {
+                // Scroll to new post or highlight it
+              }}>
+                View
+              </Button>
+            ),
+          });
         }
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'posts' },
         (payload) => {
-          loadPosts(); // Reload posts when post is updated
+          updatePost(payload.new);
         }
       )
       .subscribe();
 
+    // Comments real-time updates  
+    const commentsChannel = supabase
+      .channel('comments-realtime')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'comments' },
+        (payload) => {
+          // Update reply count for the post
+          setPosts(prev => prev.map(post => 
+            post.id === payload.new.post_id 
+              ? { ...post, reply_count: (post.reply_count || 0) + 1 }
+              : post
+          ));
+        }
+      )
+      .subscribe();
+
+    // Community presence tracking
+    const presenceChannel = supabase.channel('community-presence')
+      .on('presence', { event: 'sync' }, () => {
+        const newState = presenceChannel.presenceState();
+        setOnlineUsers(new Set(Object.keys(newState)));
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        setOnlineUsers(prev => new Set([...prev, key]));
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(key);
+          return newSet;
+        });
+      })
+      .subscribe();
+
+    // Track current user presence
+    if (user) {
+      presenceChannel.track({
+        user_id: user.id,
+        display_name: userProfile?.display_name || user.email,
+        online_at: new Date().toISOString(),
+      });
+    }
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(presenceChannel);
     };
-  }, []);
+  };
 
   const loadUserAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -128,6 +197,11 @@ const Community = () => {
 
       if (error) throw error;
       setPosts(data || []);
+      
+      // Also update view counts for posts
+      if (data?.length > 0) {
+        data.forEach(post => incrementViewCount(post.id));
+      }
     } catch (error) {
       console.error('Error loading posts:', error);
       toast({
@@ -137,6 +211,60 @@ const Community = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTrendingPosts = async () => {
+    try {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:author_id (
+            id,
+            display_name,
+            role,
+            avatar_url
+          ),
+          forum_categories:category_id (
+            id,
+            name,
+            color
+          )
+        `)
+        .gte('created_at', oneDayAgo.toISOString())
+        .order('upvotes', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setTrendingPosts(data || []);
+    } catch (error) {
+      console.error('Error loading trending posts:', error);
+    }
+  };
+
+  const handleNewPost = (newPost) => {
+    // Add the new post to the beginning of the posts array
+    loadPosts(); // Reload to get full post data with joins
+  };
+
+  const updatePost = (updatedPost) => {
+    setPosts(prev => prev.map(post => 
+      post.id === updatedPost.id 
+        ? { ...post, ...updatedPost }
+        : post
+    ));
+  };
+
+  const incrementViewCount = async (postId) => {
+    try {
+      await supabase.rpc('increment_view_count', { post_id: postId });
+    } catch (error) {
+      // Silently fail for view count increments
+      console.log('View count increment failed:', error);
     }
   };
 
@@ -361,6 +489,96 @@ const Community = () => {
         ? { ...post, reply_count: newCount }
         : post
     ));
+  };
+
+  const toggleBookmark = async (postId) => {
+    if (!user || !userProfile) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to bookmark posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const isBookmarked = bookmarkedPosts.has(postId);
+      
+      if (isBookmarked) {
+        await supabase
+          .from('wishlists')
+          .delete()
+          .eq('user_id', userProfile.id)
+          .eq('product_id', postId);
+        
+        setBookmarkedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+        
+        toast({
+          title: "Bookmark removed",
+          description: "Post removed from your bookmarks.",
+        });
+      } else {
+        await supabase
+          .from('wishlists')
+          .insert({
+            user_id: userProfile.id,
+            product_id: postId
+          });
+        
+        setBookmarkedPosts(prev => new Set([...prev, postId]));
+        
+        toast({
+          title: "Post bookmarked!",
+          description: "Post added to your bookmarks.",
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      toast({
+        title: "Error",
+        description: "Could not update bookmark.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sharePost = async (post) => {
+    const shareUrl = `${window.location.origin}/community#post-${post.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: post.content.substring(0, 100) + '...',
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Fallback to clipboard
+        copyToClipboard(shareUrl);
+      }
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Link copied!",
+        description: "Post link copied to clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Share failed",
+        description: "Could not copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
