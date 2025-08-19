@@ -28,7 +28,9 @@ serve(async (req) => {
     console.log('AI Forecast request:', { material, region, timeframe });
 
     const prompt = `
-    As an AI construction materials price forecasting expert, analyze the following data and provide accurate predictions:
+    You are an AI construction materials price forecasting expert. Analyze the data and provide ACCURATE DAILY PRICE PREDICTIONS.
+
+    CRITICAL: You MUST generate daily price predictions for each day in the forecast period.
 
     Material: ${material}
     Region: ${region} (Tamil Nadu, India)
@@ -39,23 +41,25 @@ serve(async (req) => {
     Weather Forecast: ${JSON.stringify(weatherData)}
     Market Factors: ${JSON.stringify(marketFactors)}
 
-    Provide a comprehensive forecast analysis including:
-    1. Daily price predictions for the next ${timeframe} days
-    2. Price trend analysis (increasing/decreasing/stable)
-    3. Confidence levels (0-100%) for each prediction
-    4. Key factors influencing prices
-    5. Risk assessment
-    6. Recommendations for buyers/sellers
+    MANDATORY REQUIREMENTS:
+    1. Generate EXACTLY ${timeframe} daily price predictions starting from tomorrow
+    2. Each prediction must have: date (YYYY-MM-DD), predictedPrice (number), confidence (60-95), factors (array)
+    3. Use realistic price variations based on current price of ₹${currentPrice}
+    4. Consider seasonal patterns, weather impacts, and market trends
+    5. Ensure price progression is logical and realistic
 
-    Format your response as a JSON object with the following structure:
+    Example daily prediction format:
+    {
+      "date": "2025-08-20",
+      "predictedPrice": ${Math.round(currentPrice * (1 + (Math.random() - 0.5) * 0.1))},
+      "confidence": ${Math.round(75 + Math.random() * 15)},
+      "factors": ["market demand", "weather conditions"]
+    }
+
+    Format your response as a VALID JSON object:
     {
       "dailyPredictions": [
-        {
-          "date": "YYYY-MM-DD",
-          "predictedPrice": number,
-          "confidence": number,
-          "factors": ["factor1", "factor2"]
-        }
+        // MUST contain ${timeframe} predictions, one for each day
       ],
       "overallTrend": "increasing|decreasing|stable",
       "averageConfidence": number,
@@ -72,7 +76,7 @@ serve(async (req) => {
       }
     }
 
-    Ensure all predictions are realistic based on construction material market dynamics in Tamil Nadu.
+    IMPORTANT: Start generating daily predictions from tomorrow (${new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}) and continue for ${timeframe} consecutive days.
     `;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
@@ -115,9 +119,16 @@ serve(async (req) => {
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(aiResponse);
+      
+      // Validate that we have daily predictions
+      if (!parsedResponse.dailyPredictions || !Array.isArray(parsedResponse.dailyPredictions) || parsedResponse.dailyPredictions.length === 0) {
+        console.warn('AI response missing daily predictions, generating fallback');
+        parsedResponse.dailyPredictions = generateFallbackPredictions(currentPrice, timeframe);
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
-      // Fallback response
+      // Fallback response with proper daily predictions
       parsedResponse = {
         dailyPredictions: generateFallbackPredictions(currentPrice, timeframe),
         overallTrend: "stable",

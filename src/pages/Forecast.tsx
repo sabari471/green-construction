@@ -102,11 +102,16 @@ const Forecast = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchCurrentPrices();
-    fetchWeatherData();
     loadUserAuth();
     loadSavedAnalyses();
   }, []);
+
+  useEffect(() => {
+    if (selectedRegion) {
+      fetchCurrentPrices();
+      fetchWeatherData();
+    }
+  }, [selectedRegion]);
 
   useEffect(() => {
     if (selectedMaterial && selectedRegion) {
@@ -924,11 +929,20 @@ const Forecast = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold text-blue-600 mb-2">
-                    ₹{currentPrice?.price || 'N/A'}
-                    <span className="text-lg font-normal text-gray-500">
-                      /{selectedMaterialData?.unit}
-                    </span>
+                   <div className="text-4xl font-bold text-blue-600 mb-2">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        ₹{currentPrice?.price || '---'}
+                        <span className="text-lg font-normal text-gray-500">
+                          /{selectedMaterialData?.unit}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <span>As of {currentPrice?.date || 'Today'}</span>
