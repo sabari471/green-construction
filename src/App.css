@@ -1,9 +1,4 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+/* App.css - Keep only essential styles, remove conflicting layout rules */
 
 .logo {
   height: 6em;

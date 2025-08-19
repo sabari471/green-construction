@@ -22,31 +22,33 @@ const HeroSection = () => {
       </div>
 
       {/* Content */}
-      <div className="relative container mx-auto px-4 py-20">
-        <div className="max-w-3xl">
-          <h1 className="text-5xl md:text-7xl font-bold text-primary-foreground mb-6 leading-tight">
-            Building a 
-            <span className="bg-gradient-to-r from-accent to-success bg-clip-text text-transparent"> Sustainable </span>
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+        <div className="max-w-4xl mx-auto text-center lg:text-left">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 leading-tight">
+            Building a{" "}
+            <span className="bg-gradient-to-r from-accent to-success bg-clip-text text-transparent">
+              Sustainable
+            </span>{" "}
             Future
           </h1>
           
-          <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl text-primary-foreground/90 mb-6 sm:mb-8 leading-relaxed max-w-3xl mx-auto lg:mx-0">
             The world's first marketplace for circular construction materials, powered by intelligent forecasting and a thriving community of civil engineers.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12 justify-center lg:justify-start">
             <Button 
               size="lg" 
-              className="bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg"
+              className="bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg w-full sm:w-auto"
               onClick={() => navigate('/marketplace')}
             >
               Explore Marketplace
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
+              className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary w-full sm:w-auto"
               onClick={() => navigate('/forecast')}
             >
               View Forecast Tool
@@ -54,34 +56,34 @@ const HeroSection = () => {
           </div>
 
           {/* Quick Features */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center space-x-3 text-primary-foreground/90">
-              <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-                <Recycle className="h-6 w-6 text-accent-foreground" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto lg:mx-0">
+            <div className="flex items-center space-x-3 text-primary-foreground/90 bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
+                <Recycle className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" />
               </div>
-              <div>
-                <h3 className="font-semibold">Circular Marketplace</h3>
-                <p className="text-sm opacity-80">Reusable materials</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3 text-primary-foreground/90">
-              <div className="w-12 h-12 bg-success rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-success-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Smart Forecasting</h3>
-                <p className="text-sm opacity-80">Cost predictions</p>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base">Circular Marketplace</h3>
+                <p className="text-xs sm:text-sm opacity-80 truncate">Reusable materials</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-3 text-primary-foreground/90">
-              <div className="w-12 h-12 bg-warning rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-warning-foreground" />
+            <div className="flex items-center space-x-3 text-primary-foreground/90 bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-success rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success-foreground" />
               </div>
-              <div>
-                <h3 className="font-semibold">Expert Community</h3>
-                <p className="text-sm opacity-80">Civil engineers</p>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base">Smart Forecasting</h3>
+                <p className="text-xs sm:text-sm opacity-80 truncate">Cost predictions</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3 text-primary-foreground/90 bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-warning-foreground" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base">Expert Community</h3>
+                <p className="text-xs sm:text-sm opacity-80 truncate">Civil engineers</p>
               </div>
             </div>
           </div>

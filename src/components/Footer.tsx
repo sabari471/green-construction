@@ -5,8 +5,8 @@ import { Recycle, Mail, Phone, MapPin, Linkedin, Twitter, Github } from "lucide-
 const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground">
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand Section */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -76,14 +76,14 @@ const Footer = () => {
         <Separator className="my-8 bg-primary-foreground/20" />
 
         {/* Bottom Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <div className="flex flex-wrap gap-6 text-sm text-primary-foreground/80">
+        <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
+          <div className="flex flex-wrap justify-center lg:justify-start gap-4 sm:gap-6 text-sm text-primary-foreground/80">
             <a href="#privacy" className="hover:text-accent transition-colors">Privacy Policy</a>
             <a href="#terms" className="hover:text-accent transition-colors">Terms of Service</a>
             <a href="#cookies" className="hover:text-accent transition-colors">Cookie Policy</a>
             <a href="#legal" className="hover:text-accent transition-colors">Legal</a>
           </div>
-          <p className="text-sm text-primary-foreground/80">
+          <p className="text-sm text-primary-foreground/80 text-center lg:text-right">
             © 2024 GreenConstructHub. All rights reserved.
           </p>
         </div>
