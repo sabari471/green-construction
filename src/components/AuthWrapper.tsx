@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +22,7 @@ export const AuthWrapper = ({ children }: AuthWrapperProps) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -29,6 +31,7 @@ export const AuthWrapper = ({ children }: AuthWrapperProps) => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -37,7 +40,11 @@ export const AuthWrapper = ({ children }: AuthWrapperProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  return children;
+  return (
+    <ProfileProvider user={user}>
+      {children}
+    </ProfileProvider>
+  );
 };
 
 export { type AuthContextType };
