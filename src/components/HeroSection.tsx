@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Recycle, TrendingUp, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import AnimatedBackground from "./AnimatedBackground";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section id="home" className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -35,6 +38,7 @@ const HeroSection = () => {
             <Button 
               size="lg" 
               className="bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg"
+              onClick={() => navigate('/marketplace')}
             >
               Explore Marketplace
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -43,6 +47,7 @@ const HeroSection = () => {
               size="lg" 
               variant="outline" 
               className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
+              onClick={() => navigate('/forecast')}
             >
               View Forecast Tool
             </Button>

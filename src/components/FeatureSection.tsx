@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Recycle, TrendingUp, Users, Leaf, Calculator, MessageSquare, ArrowRight } from "lucide-react";
 
 const features = [
@@ -8,25 +9,30 @@ const features = [
     title: "Circular Marketplace",
     description: "Buy and sell reclaimed construction materials with detailed sustainability scores and verified quality standards.",
     features: ["Material authentication", "CO₂ impact tracking", "Seller verification", "Quality assurance"],
-    color: "bg-accent"
+    color: "bg-accent",
+    route: "/marketplace"
   },
   {
     icon: TrendingUp,
     title: "Cost Forecasting Tool", 
     description: "AI-powered predictions for material costs with regional comparisons and uncertainty analysis.",
     features: ["Regional price trends", "Forecast accuracy", "Alternative suggestions", "Export reports"],
-    color: "bg-success"
+    color: "bg-success",
+    route: "/forecast"
   },
   {
     icon: Users,
     title: "Engineering Community",
     description: "Connect with civil engineers worldwide to share knowledge, best practices, and sustainable solutions.",
     features: ["Expert forums", "Knowledge sharing", "Project collaboration", "Professional networking"],
-    color: "bg-warning"
+    color: "bg-warning",
+    route: "/community"
   }
 ];
 
 const FeatureSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -62,7 +68,11 @@ const FeatureSection = () => {
                   ))}
                 </ul>
                 
-                <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Button 
+                  variant="outline" 
+                  className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                  onClick={() => navigate(feature.route)}
+                >
                   Learn More
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
