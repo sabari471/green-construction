@@ -969,57 +969,77 @@ const Forecast = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {forecastData.slice(-1).map((item, index) => (
-                    <div key={index} className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-600">
-                            {timeframe} Year Target Price
-                          </span>
-                          <Badge 
-                            variant={item.trend === 'increasing' ? 'destructive' : item.trend === 'decreasing' ? 'default' : 'secondary'}
-                            className="flex items-center gap-1"
-                          >
-                            {getTrendIcon(item.trend)}
-                            {item.trend}
-                          </Badge>
-                        </div>
-                        <div className="text-3xl font-bold text-purple-600">
-                          ₹{item.predicted_price}
-                          <span className="text-sm font-normal text-gray-500">
-                            /{selectedMaterialData?.unit}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 pt-4 border-t">
-                        <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-600">
-                            {Math.round(item.confidence_level)}%
-                          </div>
-                          <div className="text-xs text-gray-600">Confidence</div>
-                        </div>
-                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <div className="text-2xl font-bold text-green-600">
-                            {item.supply_demand_ratio}
-                          </div>
-                          <div className="text-xs text-gray-600">Supply/Demand</div>
-                        </div>
-                        <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                          <div className="text-2xl font-bold text-yellow-600">
-                            {item.weather_impact}%
-                          </div>
-                          <div className="text-xs text-gray-600">Weather Impact</div>
-                        </div>
-                        <div className="text-center p-3 bg-red-50 rounded-lg">
-                          <div className="text-2xl font-bold text-red-600">
-                            {item.market_volatility}%
-                          </div>
-                          <div className="text-xs text-gray-600">Volatility</div>
-                        </div>
+                  {loading ? (
+                    <div className="h-48 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                        <div className="text-gray-600">Generating AI analysis...</div>
                       </div>
                     </div>
-                  ))}
+                  ) : forecastData.length === 0 ? (
+                    <div className="h-48 flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <Target className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>No forecast data available</p>
+                        <p className="text-sm">Click Refresh to generate predictions</p>
+                      </div>
+                    </div>
+                  ) : (
+                    forecastData.slice(-1).map((item, index) => (
+                      <div key={index} className="space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600">
+                              {timeframe} Year Target Price
+                            </span>
+                            <Badge 
+                              variant={item.trend === 'increasing' ? 'destructive' : item.trend === 'decreasing' ? 'default' : 'secondary'}
+                              className="flex items-center gap-1"
+                            >
+                              {getTrendIcon(item.trend)}
+                              {item.trend || 'stable'}
+                            </Badge>
+                          </div>
+                          <div className="text-3xl font-bold text-purple-600">
+                            ₹{typeof item.predicted_price === 'number' ? item.predicted_price.toFixed(2) : '---'}
+                            <span className="text-sm font-normal text-gray-500">
+                              /{selectedMaterialData?.unit || 'unit'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 pt-4 border-t">
+                          <div className="text-center p-3 bg-blue-50 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {typeof item.confidence_level === 'number' ? Math.round(item.confidence_level) : 0}%
+                            </div>
+                            <div className="text-xs text-gray-600">Confidence</div>
+                          </div>
+                          <div className="text-center p-3 bg-green-50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">
+                              {typeof item.supply_demand_ratio === 'number' ? item.supply_demand_ratio.toFixed(2) : '1.00'}
+                            </div>
+                            <div className="text-xs text-gray-600">Supply/Demand</div>
+                          </div>
+                          <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                            <div className="text-2xl font-bold text-yellow-600">
+                              {typeof item.weather_impact === 'number' ? 
+                                (item.weather_impact >= 0 ? '+' : '') + item.weather_impact.toFixed(1) + '%' : 
+                                '0.0%'
+                              }
+                            </div>
+                            <div className="text-xs text-gray-600">Weather Impact</div>
+                          </div>
+                          <div className="text-center p-3 bg-red-50 rounded-lg">
+                            <div className="text-2xl font-bold text-red-600">
+                              {typeof item.market_volatility === 'number' ? item.market_volatility.toFixed(1) : '0.0'}%
+                            </div>
+                            <div className="text-xs text-gray-600">Volatility</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>
