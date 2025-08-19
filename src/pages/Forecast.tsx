@@ -223,19 +223,57 @@ const Forecast = () => {
       let data;
       
       if (realTimeData) {
-        // Get enhanced forecast with real market data
-        const marketData = await MaterialPriceService.getMarketAnalysis(selectedMaterial);
-        data = generateAdvancedForecastData(marketData);
+        // Use AI-powered predictions with Gemini API
+        const currentPriceData = currentPrices.find(p => p.material_id === selectedMaterial)?.price || 100;
+        const selectedMaterialData = materials.find(m => m.id === selectedMaterial);
+        
+        // Prepare data for AI analysis
+        const historicalData = await MaterialPriceService.getMarketAnalysis(selectedMaterial);
+        const marketFactors = MaterialPriceService.getGlobalFactors();
+        
+        try {
+          const aiResponse = await supabase.functions.invoke('ai-forecast', {
+            body: {
+              material: selectedMaterialData?.name,
+              region: selectedRegion,
+              timeframe: parseInt(timeframe) * 365, // Convert years to days
+              currentPrice: currentPriceData,
+              historicalData: historicalData,
+              weatherData: weatherData.slice(0, 30),
+              marketFactors: marketFactors
+            }
+          });
+
+          if (aiResponse.data && aiResponse.data.dailyPredictions) {
+            // Convert AI predictions to our forecast format
+            data = convertAIPredictionsToForecast(aiResponse.data);
+            toast({
+              title: "AI Forecast Generated",
+              description: `Generated AI-powered predictions with ${Math.round(aiResponse.data.averageConfidence)}% confidence`,
+            });
+          } else {
+            throw new Error('AI prediction failed');
+          }
+        } catch (aiError) {
+          console.error('AI forecast error:', aiError);
+          // Fallback to enhanced local predictions
+          const marketData = await MaterialPriceService.getMarketAnalysis(selectedMaterial);
+          data = generateAdvancedForecastData(marketData);
+          toast({
+            title: "Forecast Generated",
+            description: "Using enhanced local predictions (AI temporarily unavailable)",
+            variant: "default"
+          });
+        }
       } else {
         data = generateAdvancedForecastData();
+        toast({
+          title: "Forecast Updated", 
+          description: `Generated ${data.length} data points for ${selectedMaterialData?.name}`,
+        });
       }
       
       setForecastData(data);
-      
-      toast({
-        title: "Forecast Updated",
-        description: `Generated ${data.length} data points for ${selectedMaterialData?.name}`,
-      });
     } catch (error) {
       console.error('Error fetching forecast data:', error);
       toast({
@@ -246,6 +284,53 @@ const Forecast = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const convertAIPredictionsToForecast = (aiData: any): ForecastData[] => {
+    const predictions = aiData.dailyPredictions || [];
+    const monthlyData: ForecastData[] = [];
+    
+    // Convert daily predictions to monthly aggregates
+    const groupedByMonth: { [key: string]: typeof predictions } = {};
+    
+    predictions.forEach((pred: any) => {
+      const date = new Date(pred.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!groupedByMonth[monthKey]) {
+        groupedByMonth[monthKey] = [];
+      }
+      groupedByMonth[monthKey].push(pred);
+    });
+
+    // Create monthly forecast data
+    Object.keys(groupedByMonth).slice(0, parseInt(timeframe) * 12).forEach(monthKey => {
+      const monthPredictions = groupedByMonth[monthKey];
+      const avgPrice = monthPredictions.reduce((sum: number, p: any) => sum + p.predictedPrice, 0) / monthPredictions.length;
+      const avgConfidence = monthPredictions.reduce((sum: number, p: any) => sum + p.confidence, 0) / monthPredictions.length;
+      
+      // Determine trend based on price movement
+      const firstPrice = monthPredictions[0].predictedPrice;
+      const lastPrice = monthPredictions[monthPredictions.length - 1].predictedPrice;
+      const priceChange = (lastPrice - firstPrice) / firstPrice;
+      
+      let trend = 'stable';
+      if (priceChange > 0.02) trend = 'increasing';
+      else if (priceChange < -0.02) trend = 'decreasing';
+
+      monthlyData.push({
+        forecast_date: `${monthKey}-01`,
+        predicted_price: Math.round(avgPrice * 100) / 100,
+        confidence_level: Math.round(avgConfidence * 10) / 10,
+        trend: trend,
+        weather_impact: aiData.weatherData?.averageImpact || 0,
+        seasonal_factor: Math.sin((new Date(monthKey).getMonth() / 12) * 2 * Math.PI) * 0.1,
+        supply_demand_ratio: 1.0,
+        market_volatility: aiData.marketVolatility === 'high' ? 15 : aiData.marketVolatility === 'medium' ? 8 : 3
+      });
+    });
+
+    return monthlyData;
   };
 
   const generateAdvancedForecastData = (marketData?: any): ForecastData[] => {
@@ -469,14 +554,24 @@ const Forecast = () => {
       <Navbar />
       <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Advanced Material Price Forecast
-        </h1>
-        <p className="text-lg text-gray-600">
-          AI-powered construction material price predictions for Tamil Nadu with weather and market analysis
-        </p>
-      </div>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                Advanced Material Price Forecast
+              </h1>
+              <p className="text-lg text-gray-600">
+                AI-powered construction material price predictions for Tamil Nadu with weather and market analysis
+              </p>
+            </div>
+            {realTimeData && (
+              <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white">
+                <Zap className="h-3 w-3 mr-1" />
+                AI Predictions Active
+              </Badge>
+            )}
+          </div>
+        </div>
 
       {/* Controls */}
       <Card className="mb-8 shadow-lg">
@@ -558,25 +653,40 @@ const Forecast = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => setRealTimeData(!realTimeData)}
+                  onClick={() => {
+                    setRealTimeData(!realTimeData);
+                    // Auto-refresh forecast when toggling AI predictions
+                    setTimeout(() => {
+                      fetchCurrentPrices();
+                      fetchWeatherData(); 
+                      fetchForecastData();
+                    }, 100);
+                  }}
                   className={`${realTimeData ? 'bg-primary text-primary-foreground' : ''}`}
+                  disabled={loading}
                 >
                   <Zap className="h-4 w-4 mr-1" />
-                  Real-time
+                  {realTimeData ? 'AI ON' : 'AI OFF'}
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={fetchForecastData}
+                  onClick={() => {
+                    fetchCurrentPrices();
+                    fetchWeatherData();
+                    fetchForecastData();
+                  }}
                   disabled={loading}
+                  title="Refresh all data and regenerate forecast"
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Loading...' : 'Refresh'}
                 </Button>
               </div>
               <Button 
                 className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 onClick={handleSaveAnalysis}
-                disabled={!user}
+                disabled={!user || loading || forecastData.length === 0}
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Analysis
@@ -586,19 +696,28 @@ const Forecast = () => {
                   variant="outline" 
                   className="flex-1 h-12"
                   onClick={() => handleExport('pdf')}
-                  disabled={exportLoading}
+                  disabled={exportLoading || forecastData.length === 0 || loading}
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  PDF
+                  {exportLoading ? 'Exporting...' : 'PDF'}
                 </Button>
                 <Button 
                   variant="outline" 
                   className="flex-1 h-12"
                   onClick={() => handleExport('excel')}
-                  disabled={exportLoading}
+                  disabled={exportLoading || forecastData.length === 0 || loading}
                 >
                   <Database className="h-4 w-4 mr-2" />
-                  Excel
+                  {exportLoading ? 'Exporting...' : 'Excel'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-12"
+                  onClick={() => handleExport('csv')}
+                  disabled={exportLoading || forecastData.length === 0 || loading}
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  {exportLoading ? 'Exporting...' : 'CSV'}
                 </Button>
               </div>
             </div>

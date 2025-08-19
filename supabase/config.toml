@@ -1,1 +1,4 @@
 project_id = "uynkqxzjxbaqjafaybhf"
+
+[functions.ai-forecast]
+verify_jwt = false
