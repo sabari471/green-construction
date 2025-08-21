@@ -4,16 +4,12 @@ import { Star, Quote } from "lucide-react";
 
 const testimonials = [
   {
-    name: "Sarah Chen",
-    role: "Structural Engineer",
-    company: "GreenBuild Solutions",
-    avatar: "SC",
-    rating: 5,
+    
     content: "GreenConstructHub has revolutionized how we source sustainable materials. The forecasting tool saved us 30% on our last project budget."
   },
   {
-    name: "Miguel Rodriguez", 
-    role: "Project Manager",
+    name: "", 
+    role: " ",
     company: "EcoConstruct Ltd",
     avatar: "MR",
     rating: 5,
@@ -52,11 +48,7 @@ const TestimonialsSection = () => {
               
               <CardContent className="p-6">
                 {/* Rating */}
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-warning text-warning" />
-                  ))}
-                </div>
+                
                 
                 {/* Content */}
                 <p className="text-foreground mb-6 leading-relaxed italic">
@@ -64,19 +56,7 @@ const TestimonialsSection = () => {
                 </p>
                 
                 {/* Author */}
-                <div className="flex items-center">
-                  <Avatar className="h-12 w-12 mr-4">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${testimonial.name}`} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {testimonial.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h4 className="font-semibold text-foreground">{testimonial.name}</h4>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.company}</p>
-                  </div>
-                </div>
+                
               </CardContent>
             </Card>
           ))}
