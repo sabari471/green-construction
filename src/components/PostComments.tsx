@@ -76,7 +76,8 @@ const PostComments = ({ postId, userProfile, onReplyCountChange }: PostCommentsP
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // First, insert the comment
+      const { data: insertedComment, error: insertError } = await supabase
         .from('comments')
         .insert({
           post_id: postId,
@@ -84,6 +85,14 @@ const PostComments = ({ postId, userProfile, onReplyCountChange }: PostCommentsP
           content: newComment.trim(),
           parent_id: replyTo?.id || null
         })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Then fetch the complete comment data with profile information
+      const { data: commentWithProfile, error: fetchError } = await supabase
+        .from('comments')
         .select(`
           *,
           profiles:author_id (
@@ -93,11 +102,13 @@ const PostComments = ({ postId, userProfile, onReplyCountChange }: PostCommentsP
             avatar_url
           )
         `)
+        .eq('id', insertedComment.id)
         .single();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
-      setComments([...comments, data]);
+      // Update local state
+      setComments([...comments, commentWithProfile]);
       setNewComment("");
       setReplyTo(null);
       onReplyCountChange(comments.length + 1);
