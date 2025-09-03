@@ -847,6 +847,13 @@ const Header = ({ user, cartCount, onCartOpen, onAddProduct, currentUser, profil
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                  <Leaf className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <span className="text-xl font-bold text-foreground">GreenConstructHub</span>
+              </div>
+              
               {/* Home Button */}
               <Button
                 variant="ghost"
@@ -857,13 +864,6 @@ const Header = ({ user, cartCount, onCartOpen, onAddProduct, currentUser, profil
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Home</span>
               </Button>
-              
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                  <Leaf className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-bold text-foreground">GreenConstructHub</span>
-              </div>
             </div>
             
             <nav className="hidden md:flex items-center space-x-6">
