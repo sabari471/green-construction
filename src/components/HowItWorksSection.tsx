@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Search, Shield, Truck, Leaf, ArrowRight } from "lucide-react";
+import ScrollReveal from "./ScrollReveal";
 
 const steps = [
   {
@@ -32,18 +33,21 @@ const HowItWorksSection = () => {
   return (
     <section className="py-20">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            How It Works
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Simple steps to transform your construction projects with sustainable materials
-          </p>
-        </div>
+        <ScrollReveal direction="up" duration={700}>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+              How It Works
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Simple steps to transform your construction projects with sustainable materials
+            </p>
+          </div>
+        </ScrollReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
-            <div key={index} className="relative">
+            <ScrollReveal key={index} direction="up" delay={index * 200} duration={600}>
+              <div className="relative">
               {/* Connector Line */}
               {index < steps.length - 1 && (
                 <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-primary to-accent transform -translate-y-1/2 z-0" />
@@ -66,12 +70,14 @@ const HowItWorksSection = () => {
                   <p className="text-muted-foreground leading-relaxed">{step.description}</p>
                 </CardContent>
               </Card>
-            </div>
+              </div>
+            </ScrollReveal>
           ))}
         </div>
 
         {/* CTA Section */}
-        <div className="text-center mt-16">
+        <ScrollReveal direction="scale" delay={800} duration={700}>
+          <div className="text-center mt-16">
           <div className="inline-flex items-center space-x-2 bg-success/10 text-success px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Leaf className="h-4 w-4" />
             <span>Join the Sustainable Construction Movement</span>
@@ -98,8 +104,9 @@ const HowItWorksSection = () => {
             >
               Join Community
             </Button>
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );

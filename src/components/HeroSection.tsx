@@ -3,6 +3,7 @@ import { ArrowRight, Recycle, TrendingUp, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import AnimatedBackground from "./AnimatedBackground";
+import ScrollReveal from "./ScrollReveal";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -24,19 +25,24 @@ const HeroSection = () => {
       {/* Content */}
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
         <div className="max-w-4xl mx-auto text-center lg:text-left">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 leading-tight">
-            Building a{" "}
-            <span className="bg-gradient-to-r from-accent to-success bg-clip-text text-transparent">
-              Sustainable
-            </span>{" "}
-            Future
-          </h1>
+          <ScrollReveal direction="scale" duration={800}>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 leading-tight">
+              Building a{" "}
+              <span className="bg-gradient-to-r from-accent to-success bg-clip-text text-transparent">
+                Sustainable
+              </span>{" "}
+              Future
+            </h1>
+          </ScrollReveal>
           
-          <p className="text-lg sm:text-xl md:text-2xl text-primary-foreground/90 mb-6 sm:mb-8 leading-relaxed max-w-3xl mx-auto lg:mx-0">
-            The world's first marketplace for circular construction materials, powered by intelligent forecasting and a thriving community of civil engineers.
-          </p>
+          <ScrollReveal direction="up" delay={200} duration={700}>
+            <p className="text-lg sm:text-xl md:text-2xl text-primary-foreground/90 mb-6 sm:mb-8 leading-relaxed max-w-3xl mx-auto lg:mx-0">
+              The world's first marketplace for circular construction materials, powered by intelligent forecasting and a thriving community of civil engineers.
+            </p>
+          </ScrollReveal>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12 justify-center lg:justify-start">
+          <ScrollReveal direction="up" delay={400} duration={600}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12 justify-center lg:justify-start">
             <Button 
               size="lg" 
               className="bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg w-full sm:w-auto"
@@ -53,10 +59,12 @@ const HeroSection = () => {
             >
               View Forecast Tool
             </Button>
-          </div>
+            </div>
+          </ScrollReveal>
 
           {/* Quick Features */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto lg:mx-0">
+          <ScrollReveal direction="up" delay={600} duration={800}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto lg:mx-0">
             <div className="flex items-center space-x-3 text-primary-foreground/90 bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
                 <Recycle className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" />
@@ -86,7 +94,8 @@ const HeroSection = () => {
                 <p className="text-xs sm:text-sm opacity-80 truncate">Civil engineers</p>
               </div>
             </div>
-          </div>
+            </div>
+          </ScrollReveal>
         </div>
       </div>
 
